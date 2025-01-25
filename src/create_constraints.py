@@ -26,7 +26,7 @@ def flat_to_indices(idx,
     
     return i, j, k, l
 
-def create_constraints(teams):
+def create_constraints(teams, full_constraints=False):
     """
     Creates the constraint matrices and RHS for a valid NFL schedule.
     
@@ -94,9 +94,9 @@ def create_constraints(teams):
     num_slots = 1
     num_vars = num_teams * num_stadiums * num_weeks * num_slots
     
-    #slots = pd.DataFrame({
-    #    'slot_id': range(num_slots),
-    #    'slot_desc': ['Sun', 'TNF', 'SNF', 'MNF']})
+    slots = pd.DataFrame({
+        'slot_id': range(num_slots),
+        'slot_desc': ['Sun', 'TNF', 'SNF', 'MNF']})
     
     
     # Create divisions df to help later
@@ -319,7 +319,8 @@ def create_constraints(teams):
     
     
     # 6. Max 2 Thursday night games per team, max 1 of those games at home
-      
+    
+    
     
     # 7. Stadium conflicts - LAR/LAC and NYG/NYJ cannot be home same weeks
     lac = teams.loc[teams['team_abbr'] == 'LAC', 'team_id'].iloc[0]
@@ -348,6 +349,10 @@ def create_constraints(teams):
     #            - Thanksgiving, which contains 3 TNF games, and DAL/DET much each be home
     #            - Wk 18, which is scheduled after Wk 17, so for sake of this process
     #              will have 0 MNF, TNF, or SNF games
+    for k in range(num_weeks):
+        # Sunday regulartions
+        r_eq = r_eq + 1
+        snf = 
     
     
     # 9. Last game of season (Wk 18) must be against divisional opponent

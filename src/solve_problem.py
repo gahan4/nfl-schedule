@@ -43,8 +43,6 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams,
 
     """
     
-    # Define solver
-    #solver = pywraplp.Solver.CreateSolver('CBC')
     
     #num_variables = len(f)
     
@@ -64,120 +62,48 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams,
     
     print(f"There are {A_in.shape[0]} inequality constraints and {A_eq.shape[0]} equality constraints" )
     
-    #np.savetxt("results/A_in.csv", A_in.toarray(), delimiter=",")
-    #np.savetxt("results/A_eq.csv", A_eq.toarray(), delimiter=",")
-    #np.savetxt("results/b_in.csv", b_in, delimiter=",")
-    #np.savetxt("results/b_eq.csv", b_eq, delimiter=",")
-    #np.savetxt("results/f.csv", f, delimiter=",")
+    # Define solver
+    solver = pywraplp.Solver.CreateSolver('CBC')
+    x = {}
+    for j in range(A_in.shape[1]):
+        x[j] = solver.IntVar(lb=0, ub=1, name=f"x{j}")
 
-    
-    #prob = pulp.LpProblem("Binary_ILP", pulp.LpMaximize)
-    
-    #num_variables = len(f)
-    #x = pulp.LpVariable.dicts("x", range(num_variables), cat="Binary")
-    
-    # Objective function: Maximize f*x
-    #prob += pulp.lpSum(f[i] * x[i] for i in range(num_variables))
-    
-    # Constraints
-    # A_eq @ x = b_eq (equality constraints)
-    #equality_constraints = []
-    #for i in range(len(b_eq)):
-    #    constraint = pulp.lpSum(A_eq[i, j] * x[j] for j in range(num_variables)) == b_eq[i]
-    #    equality_constraints.append(constraint)
-    #    print(i)
-    #prob += pulp.lpSum(equality_constraints)
-    
-    # A_in @ x <= b_in (inequality constraints)
-    #for i in range(len(b_in)):
-    #    prob += pulp.lpSum(A_in[i, j] * x[j] for j in range(num_variables)) <= b_in[i]
-    
-    
-    # Solve the problem
-    #prob.solve()
-    
-    #if pulp.LpStatus[prob.status] == 'Optimal':
-    #    solution = [pulp.value(x[i]) for i in range(num_variables)]
-    #else:
-    #    print("No Solution found")
-
-    #model = pyo.ConcreteModel()
-    
-    #model.x = pyo.Var(range(num_variables), within=pyo.Binary)
-    
-    #model.obj = pyo.Objective(expr=sum(f[i] * model.x[i] for i in range(num_variables)), sense=pyo.maximize)
-    
-    #model.ineq_constraints = pyo.ConstraintList()
-    #for i in range(A_in.shape[0]):
-    #    print(i)
-    #    model.ineq_constraints.add(sum(A_in[i,j] * model.x[j] for j in range(num_variables)) <= b_in[i])
-
-
-    # Create variables
-    #x = [solver.IntVar(lb = 0.0, ub = 1.0, name = f"x_{v}") for v in range(num_variables)]
-    #x = cp.Variable(num_variables, boolean=True)
-    #for i in range(num_teams):
-    #    for j in range(num_stadiums):
-    #        for k in range(num_weeks):
-    #            for l in range(num_slots):
-       #             team_desc = teams.loc[teams['team_id'] == i, 'team_abbr'].iloc[0]
-      #              stadium_desc = teams.loc[teams['team_id'] == j, 'team_abbr'].iloc[0]
-     #               slot_desc = slots.loc[slots['slot_id'] == l, 'slot_desc'].iloc[0]
-     #               week_desc = str(k + 1)
-     #                x[i, j, k, l] = solver.IntVar(lb=0.0, ub=1.0, name = f"x_{i}_{j}_{k}_{l}") #, 
-                                                 #name=f"{team_desc}_{stadium_desc}_{slot_desc}_{week_desc}")
-    
-        
-    '''numpy2ri.activate()
-    r = robjects.r
-    r('library(Rsymphony)')
-    r_A_eq = robjects.r['matrix'](A_eq, nrow=A_eq.shape[0], ncol=A_eq.shape[1])
-    r_A_in = robjects.r['matrix'](A_in, nrow=A_in.shape[0], ncol=A_in.shape[1])
-    r_b_eq = robjects.FloatVector(b_eq.flatten())  # Flattening in case it's 2D
-    r_b_in = robjects.FloatVector(b_in.flatten())
-    r_f = robjects.FloatVector(f.flatten())
-
-    glpk.options['tm_lim'] = 1000
-    glpk.options['msg_lev'] = 'GLP_MSG_ON'
-    result = ilp(c = -1*matrix(f),
-                 G = matrix(A_in),
-                 h = matrix(b_in),
-                 A = matrix(A_eq),
-                 b = matrix(b_eq),
-                 B = set(range(A_eq.shape[1])))'''
-    
-    # Define objective funtion
-    '''objective = solver.Objective()
-    for v in range(num_variables):
+    objective = solver.Objective()
+    for v in range(A_in.shape[1]):
         objective.SetCoefficient(x[v], f[v])
-    #objective.SetMaximization()
+    objective.SetMaximization()
     #objective = cp.Maximize(f @ x)
     
     # Define equality constraints
-    for r_eq in range(A_eq_csr.shape[0]):
-        print(r_eq)
-        constraint = solver.Constraint(b_eq[r_eq], b_eq[r_eq])
-        for v in range(num_variables):
-            if A_eq_csr[r_eq, v] != 0:
-                constraint.SetCoefficient(x[v], A_eq_csr[r_eq, v])
+    for r in range(A_eq.shape[0]):
+        constraint = solver.RowConstraint(b_eq[r], b_eq[r])
+        for v in range(A_eq.shape[1]):
+            constraint.SetCoefficient(x[v], A_eq[r, v])
+    print("Completed entering  equality constraints")
     # Define inequality constraints
-    for r_in in range(A_in_csr.shape[0]):
-        constraint = solver.Constraint(-solver.infinity(), b_in[r_in])
-        for v in range(num_variables):
-            if A_in_csr[r_in, v] != 0:
-                constraint.SetCoefficient(x[v], A_in_csr[r_in, v])
+    for r in range(A_in.shape[0]):
+        constraint = solver.RowConstraint(-solver.infinity(), b_in[r])
+        for v in range(A_in.shape[1]):
+            constraint.SetCoefficient(x[v], A_in[r, v])
+    print("Completed entering inequality constraints")
     
     status = solver.Solve()
     
     if status == pywraplp.Solver.OPTIMAL:
         print("Solution found")
-        optimal_solution = x.solution_value()
-        return optimal_solution
+        opt_sol = [x[i].solution_value() for i in range(len(x))]
+        opt_objective = solver.Objective().Value()
+        print(f"Problem solved in {solver.wall_time():d} milliseconds")
+        print(f"Problem solved in {solver.iterations():d} iterations")
+        print(f"Problem solved in {solver.nodes():d} branch-and-bound nodes")
+
+        return opt_sol, opt_objective
         
     else:
         print("Solution not found")
-        return None'''
+        return None
     
+    '''
     # combine constraints...
     constraints = LinearConstraint(A= vstack([A_in, A_eq]), 
                                    lb=np.concatenate((-np.ones_like(b_in)*np.inf, b_eq)), 
@@ -193,4 +119,4 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams,
                  "mip_rel_gap": 0.1}
         )
     
-    return result
+    return result'''
