@@ -10,18 +10,9 @@ from scipy.sparse import lil_matrix, csr_matrix, vstack
 from scipy.optimize import milp, LinearConstraint, Bounds
 import pandas as pd
 import numpy as np
-from cvxopt import matrix
-from cvxopt import glpk
-from cvxopt.glpk import ilp
-#import pulp
-#import pyomo.environ as pyo
-from rpy2 import robjects
-from rpy2.robjects import numpy2ri
 
 
-def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams,
-                         num_teams = 32, num_stadiums = 32,
-                         num_weeks = 18, num_slots = 1):
+def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams):
     """
     
 
@@ -42,10 +33,7 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams,
     None.
 
     """
-    
-    
-    #num_variables = len(f)
-    
+        
     # Convert sparse lil_matrix to csr_matrix
     A_in = A_in.tocsr()
     A_eq = A_eq.tocsr()
@@ -87,6 +75,8 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams,
             constraint.SetCoefficient(x[v], A_in[r, v])
     print("Completed entering inequality constraints")
     
+    solver.SetTimeLimit(1000 * 60)  # units are milliseconds
+    
     status = solver.Solve()
     
     if status == pywraplp.Solver.OPTIMAL:
@@ -103,20 +93,3 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams,
         print("Solution not found")
         return None
     
-    '''
-    # combine constraints...
-    constraints = LinearConstraint(A= vstack([A_in, A_eq]), 
-                                   lb=np.concatenate((-np.ones_like(b_in)*np.inf, b_eq)), 
-                                   ub=np.concatenate((b_in, b_eq)))
-    
-        
-    result = milp(
-        c=f, # objective function
-        integrality=np.ones_like(f), # all variables are integers
-        bounds=Bounds(lb=0,ub=1),
-        constraints=constraints,
-        options={"time_limit":10000000,
-                 "mip_rel_gap": 0.1}
-        )
-    
-    return result'''

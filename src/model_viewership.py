@@ -9,7 +9,7 @@ Created on Thu Jan 16 19:54:12 2025
 import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
-from load_data import get_teams_and_standings, add_popularity_metrics
+from data.load_data import get_teams_and_standings, add_popularity_metrics
 
 
 # Model viewership
@@ -67,11 +67,15 @@ def model_viewership():
     
     # To create the intrigue score for a particular team, can remove the coefficients
     # and confounding terms from the model before predicting
+    
     team_seasons['intrigue_unscaled'] = intrigue_model.params['WinPct'] * team_seasons['WinPct'] + \
         intrigue_model.params['twitter_followers'] * team_seasons['twitter_followers']
-    # For ease of understanding, scale so that mean is 100 and standard deviation is 20
-    team_seasons['intrigue'] = (team_seasons['intrigue_unscaled'] - team_seasons['intrigue_unscaled'].mean()) / \
-        team_seasons['intrigue_unscaled'].std() * 20 + 100
+    # For ease of understanding, scale so that mean is 100 and standard deviation is 20. Take
+    # care to save the constants for use outside of this process.
+    mean_intrigue_unscaled = team_seasons['intrigue_unscaled'].mean()
+    std_intrigue_unscaled = team_seasons['intrigue_unscaled'].std()
+    team_seasons['intrigue'] = (team_seasons['intrigue_unscaled'] - mean_intrigue_unscaled) / \
+        std_intrigue_unscaled * 20 + 100
         
     # Given this information, we now want to predict how many viewers will watch
     # a particular game, given the two teams playing and the window
@@ -100,12 +104,15 @@ def model_viewership():
     viewership_with_team_data['max_above_average'] = viewership_with_team_data['max_intrigue'].apply(lambda x: 0 if x < 100 else x - 100)
     viewership_with_team_data['min_above_average'] = viewership_with_team_data['min_intrigue'].apply(lambda x: 0 if x < 100 else x - 100)
     viewership_with_team_data['two_elite_teams'] = np.where(viewership_with_team_data['min_intrigue'] >= 120, 1, 0)
+    viewership_with_team_data['two_aavg_teams'] = np.where((viewership_with_team_data['min_intrigue'] >= 110) &
+                                                           (viewership_with_team_data['min_intrigue'] < 120), 1, 0)
+
     
     # A particularly interesting finding is that the identity of the identity of the less-important
     # team doesn't seem to matter much. P-value for max_intrigue is 0 (coeff of .11), but
     # p-value for min intrigue team is .39 (coeff of .025)
-    game_viewers_model = smf.ols('Viewers ~ C(Window) + max_intrigue + min_intrigue  + \
-                                 two_elite_teams',
+    game_viewers_model = smf.ols('Viewers ~ C(Window) + max_intrigue   + \
+                                 two_elite_teams + two_aavg_teams',
             data = viewership_with_team_data.loc[viewership_with_team_data['Window'].isin(['SNF','MNF','TNF'])]).fit()
     # The variables for same_division and in_flex_window both return insignificant coefficients,
     # so will remove them
@@ -122,5 +129,5 @@ def model_viewership():
     # then regress actual viewership back to that number according to variables
     # related to the intrigue level of the game
     
-    return intrigue_model, game_viewers_model 
+    return intrigue_model, game_viewers_model, mean_intrigue_unscaled, std_intrigue_unscaled
 

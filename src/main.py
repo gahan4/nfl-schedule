@@ -13,6 +13,7 @@ import os as os
 os.chdir('/Users/neil/Documents/Projects/NFL Schedule')
 
 from data.load_data import get_teams_and_standings, add_popularity_metrics, get_matchups
+from data.config import *
 from src.model_viewership import model_viewership
 #from create_constraints import get_index, create_constraints
 from src.create_objective_function import create_objective_function
@@ -21,15 +22,11 @@ from src.solve_problem import get_optimal_solution
 from src.define_problem import define_problem, get_index
 
 retrain_model = False
-num_teams = 32
-num_stadiums = num_teams
-num_weeks = 18
-num_slots = 1
 
 if __name__ == "__main__":
     
     if retrain_model == True:
-        intrigue_model, game_viewers_model = model_viewership()
+        intrigue_model, game_viewers_model, mean_intrigue_unscaled, std_intrigue_unscaled = model_viewership()
 
     teams = get_teams_and_standings(2024)
     teams = add_popularity_metrics(teams)
@@ -51,18 +48,17 @@ if __name__ == "__main__":
 
     
     #A_eq, A_in, b_eq, b_in = create_constraints(teams)
-    A_eq, A_in, b_eq, b_in = define_problem(teams=teams, matchups=matchups,
-                                            num_slots=1)
+    A_eq, A_in, b_eq, b_in = define_problem(teams=teams, matchups=matchups)
     print("Completed setting up constraint matrices")
-    f = create_objective_function(teams, A_in, A_eq)
+    f = create_objective_function(teams, matchups, intrigue_model, game_viewers_model,
+                                   mean_intrigue_unscaled, std_intrigue_unscaled)
     print("Completed setting up objective function")
-    opt_sol, opt_objective = get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams,
-                                   num_slots=1)
+    opt_sol, opt_objective = get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams)
             
     schedule_matrix = np.full((18, 32), "", dtype="U4")
     for i in range(matchups.shape[0]):
-        for j in range(num_weeks):
-            for k in range(num_slots):
+        for j in range(NUM_WEEKS):
+            for k in range(NUM_SLOTS):
                 this_index = get_index(i,j,k)
                 if opt_sol[this_index] > .5:
                     home_team_id = matchups.loc[matchups['game_id'] == i, 'home_team_id'].iloc[0]
@@ -74,5 +70,15 @@ if __name__ == "__main__":
 
     schedule_matrix = pd.DataFrame(schedule_matrix)
     schedule_matrix.columns = teams['team_abbr']
+    
+    matchups_with_schedule = matchups.copy()
+    matchups_with_schedule['Week'] = -1
+    matchups_with_schedule['Slot'] = ""
+    for i in range(NUM_MATCHUPS):
+        for j in range(NUM_WEEKS):
+            for k in range(NUM_SLOTS):
+                if opt_sol[get_index(i,j,k)] > .5:
+                    matchups_with_schedule.loc[matchups_with_schedule['game_id'] == i, 'Week'] = j + 1
+                    matchups_with_schedule.loc[matchups_with_schedule['game_id'] == i, 'Slot'] = slots.loc[slots['slot_id'] == k, 'slot_desc'].iloc[0]
     
     
