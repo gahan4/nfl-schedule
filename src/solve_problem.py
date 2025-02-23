@@ -12,25 +12,30 @@ import pandas as pd
 import numpy as np
 
 
-def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams):
+def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, verbose=True):
     """
-    
+    Given a set of equality and inequality constraints in matrices, as well as an
+    objective function vector, uses OR-TOOLS to find an optimal result.
 
     Parameters
     ----------
-    A_in : TYPE
-        DESCRIPTION.
-    A_eq : TYPE
-        DESCRIPTION.
-    b_in : TYPE
-        DESCRIPTION.
-    b_eq : TYPE
-        DESCRIPTION.
-    f : TYPE
+    A_in : scipy.sparse.lil_matrix
+        Contains inequality constraints, with one constraint per row.
+    A_eq : scipy.sparse.lil_matrix
+        Contains equality constraints, with one constraint per row.
+    b_in : np array
+        Right hand side of inequality constraints.
+    b_eq : np array
+        Right hand side of equality constraints..
+    f : np array
+        Objective function vector.
+    Verbose: bool
+        Whether to print CBC solver's ongoing results to console
 
     Returns
     -------
-    None.
+    opt_sol - Vector with optimal solution.
+    opt_objective - Objective function value at optimal solution.
 
     """
         
@@ -52,6 +57,9 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams):
     
     # Define solver
     solver = pywraplp.Solver.CreateSolver('CBC')
+    if verbose:
+        solver.EnableOutput()
+
     x = {}
     for j in range(A_in.shape[1]):
         x[j] = solver.IntVar(lb=0, ub=1, name=f"x{j}")
@@ -60,14 +68,13 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams):
     for v in range(A_in.shape[1]):
         objective.SetCoefficient(x[v], f[v])
     objective.SetMaximization()
-    #objective = cp.Maximize(f @ x)
     
     # Define equality constraints
     for r in range(A_eq.shape[0]):
         constraint = solver.RowConstraint(b_eq[r], b_eq[r])
         for v in range(A_eq.shape[1]):
             constraint.SetCoefficient(x[v], A_eq[r, v])
-    print("Completed entering  equality constraints")
+    print("Completed entering equality constraints")
     # Define inequality constraints
     for r in range(A_in.shape[0]):
         constraint = solver.RowConstraint(-solver.infinity(), b_in[r])
@@ -75,8 +82,8 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams):
             constraint.SetCoefficient(x[v], A_in[r, v])
     print("Completed entering inequality constraints")
     
-    solver.SetTimeLimit(1000 * 60)  # units are milliseconds
-    
+    solver.SetTimeLimit(1000 * 60 * 30)  # units are milliseconds
+
     status = solver.Solve()
     
     if status == pywraplp.Solver.OPTIMAL:

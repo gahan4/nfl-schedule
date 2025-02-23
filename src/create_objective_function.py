@@ -40,6 +40,7 @@ def create_objective_function(teams, matchups, intrigue_model, game_viewers_mode
     matchups['two_aavg_teams'] = np.where((matchups['min_intrigue'] >= 110) &
                                         (matchups['min_intrigue'] < 120), 1, 0)
     
+    
     # Add projected viewers in the case of TNF, SNF, and MNF
     matchups['Window'] = 'TNF'
     matchups['TNF_Viewers'] = game_viewers_model.predict(matchups)
@@ -52,6 +53,11 @@ def create_objective_function(teams, matchups, intrigue_model, game_viewers_mode
     
     matchups = matchups.drop(columns=['Window'])
     
+    # In data set being used, there were no games in MNF or SNF with average
+    # intrigue score below 85
+    matchups['arithmetic_mean_intrigue'] = (matchups['intrigue_home'] +
+                                            matchups['intrigue_away']) / 2.0
+    
     # Create the objective function by leveraging the get_index function
     objective_function = np.zeros(int(NUM_MATCHUPS * NUM_WEEKS *  NUM_SLOTS))
     for i in range(NUM_MATCHUPS):
@@ -63,11 +69,11 @@ def create_objective_function(teams, matchups, intrigue_model, game_viewers_mode
                 elif slot_desc == 'TNF':
                     objective_function[get_index(i,j,k)] = matchups.loc[matchups['game_id'] == i, 'TNF_Viewers'].iloc[0]
                 elif slot_desc == "SNF":
-                    objective_function[get_index(i,j,k)] = matchups.loc[matchups['game_id'] == i, 'TNF_Viewers'].iloc[0]
+                    objective_function[get_index(i,j,k)] = matchups.loc[matchups['game_id'] == i, 'SNF_Viewers'].iloc[0]
                 else:
                     objective_function[get_index(i,j,k)] = 0
                     
-    return objective_function
+    return objective_function, matchups
 
 
 

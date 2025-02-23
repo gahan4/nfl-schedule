@@ -23,7 +23,7 @@ def get_inverse_index(index):
 
 def define_problem(teams, matchups):
     '''
-        1. Each matchup must occur
+        1. Each matchup must occur once in season
         2. Each team must play 17 games, at most once per week, bye
            between weeks 5-14
         3. Avoid having 3 consecutive road games
@@ -43,6 +43,7 @@ def define_problem(teams, matchups):
             - All teams playing home Thursday games must play within division
               or same division other conference (i.e. AFC East vs NFC East)
               during previous week
+        12. Minimum threshold of game quality for primetime game
 
     Parameters
     ----------
@@ -100,17 +101,18 @@ def define_problem(teams, matchups):
                 b_in[r_in] = 1
     
     # 3. Avoid 3 consecutive road games
-    '''for tm in teams['team_id'].values:
+    for tm in teams['team_id'].values:
         team_home_matchups = matchups.loc[matchups['home_team_id'] == tm, 'game_id'].values
         for j in range(NUM_WEEKS - 2):
+            r_in = r_in + 1
             for k in range(NUM_SLOTS):
-                r_in = r_in + 1
                 for i in team_home_matchups:
                     A_in[r_in, get_index(i, j, k)] = -1
                     A_in[r_in, get_index(i, j + 1, k)] = -1
                     A_in[r_in, get_index(i, j + 2, k)] = -1
-                b_in[r_in] = -1
+            b_in[r_in] = -1
                 
+    
     # 4. Stadium conflicts - LAR/LAC and NYG/NYJ cannot be home same weeks
     la_home_matchups = matchups.loc[matchups['home_team_abbr'].isin(['LA','LAC']), 'game_id'].values
     for j in range(NUM_WEEKS):
@@ -128,6 +130,8 @@ def define_problem(teams, matchups):
                 A_in[r_in, get_index(i,j,k)] = 1
         b_in[r_in] = 1
         
+    
+        
     # 5. Last game of season must be against divisional opp - to minimize number
     #    of constraints and ease in solve, will code this up by setting many values
     #    equal to 0
@@ -137,10 +141,11 @@ def define_problem(teams, matchups):
         for k in range(NUM_SLOTS):
             A_eq[r_eq, get_index(i, 17, k)] = 1
     b_eq[r_eq] = 0
-
+    
     # 6. Can't play back-to-back or semi-repeater
     # First, find the pairs of matchups that are same team home and away
-    same_team_matchups = matchups.merge( matchups,how='inner',
+    same_team_matchups = matchups.merge( matchups,
+                                        how='inner',
                    left_on=['Home', 'Away'],
                    right_on=['Away','Home'])[["Home_x","Away_x", "game_id_x", "game_id_y"]]
     # To avoid having dups, filter so that game_id_x < game_id_y
@@ -149,7 +154,7 @@ def define_problem(teams, matchups):
     for stm in range(same_team_matchups.shape[0]):
         game_id_x = same_team_matchups['game_id_x'].iloc[stm]
         game_id_y = same_team_matchups['game_id_y'].iloc[stm]
-        for j in range(NUM_WEEKS - 1):
+        for j in range(NUM_WEEKS - 2):
             r_in = r_in + 1
             for k in range(NUM_SLOTS):
                 A_in[r_in, get_index(game_id_x, j, k)] = 1
@@ -165,15 +170,14 @@ def define_problem(teams, matchups):
     #     I'm just going to assume the Thanksgiving games and some
     #     baseball interference with BAL, KC, PHI
     #    DET and DAL must be home for Thanksgiving (Week 12)
-    thanksgiving_week = 11
+    tnf_slot = slots.loc[slots['slot_desc'] == "TNF", 'slot_id'].iloc[0]
     for tm in ['Dallas Cowboys', 'Detroit Lions']:
         team_home_matchups = matchups.loc[matchups['Home'] == tm, 'game_id'].values
         r_eq = r_eq + 1
         for i in team_home_matchups:
-            for k in range(NUM_SLOTS):
-                A_eq[r_eq, get_index(i, thanksgiving_week, k)] = 1
+            A_eq[r_eq, get_index(i, THANKSGIVING_WEEK, tnf_slot)] = 1
         b_eq[r_eq] = 1
-        
+    
     # 8. Each week contains 1 SNF game, 1 MNF game, and 1 TNF game, with following
     #   exceptions:
     #    - Thanksgiving, which contains 3 TNF games, and DAL/DET much each be home
@@ -188,24 +192,29 @@ def define_problem(teams, matchups):
                         r_eq = r_eq + 1
                         for i in range(NUM_MATCHUPS):
                             A_eq[r_eq, get_index(i,j,k)] = 1
-                        b_eq[r_eq] = 1
-                    else:
+                        b_eq[r_eq] = 1  
+                    elif j == 17: # if last week of season, no game in this slot
                         r_eq = r_eq + 1
                         for i in range(NUM_MATCHUPS):
                             A_eq[r_eq, get_index(i,j,k)] = 1
                         b_eq[r_eq] = 0
             elif slot_desc == 'TNF':
                 for j in range(NUM_WEEKS):
-                    if j < 17 and j != thanksgiving_week:
+                    if j < 17 and j != THANKSGIVING_WEEK:
                         r_eq = r_eq + 1
                         for i in range(NUM_MATCHUPS):
                             A_eq[r_eq, get_index(i,j,k)] = 1
                         b_eq[r_eq] = 1
-                    elif j == thanksgiving_week:
+                    elif j == THANKSGIVING_WEEK:
                         r_eq = r_eq + 1
                         for i in range(NUM_MATCHUPS):
                             A_eq[r_eq, get_index(i,j,k)] = 1
                         b_eq[r_eq] = 3
+                    elif j == 17:
+                        r_eq = r_eq + 1
+                        for i in range(NUM_MATCHUPS):
+                            A_eq[r_eq, get_index(i,j,k)] = 1
+                        b_eq[r_eq] = 0
 
     # 9. Max 2 Thursday games per team, max 1 of those at home
     tnf_slot = slots.loc[slots['slot_desc'] == "TNF", 'slot_id'].iloc[0]
@@ -226,20 +235,76 @@ def define_problem(teams, matchups):
         b_in[r_in] = 1
 
     
-    # 10. Teams that play a road game on Monday cannot play on the road the following week
+    # 10. Monday restrictions:
+    #     - Teams that play a road game on Monday cannot play on the road the following week.
+    #     - Any team that plays on Monday can't play on the next Thursday 
     mnf_slot = slots.loc[slots['slot_desc'] == "MNF", 'slot_id'].iloc[0]
-
-
+    tnf_slot = slots.loc[slots['slot_desc'] == "TNF", 'slot_id'].iloc[0]
+    for tm in range(NUM_TEAMS):
+        team_away_matchups = matchups.loc[matchups['away_team_id'] == tm, 'game_id'].values
+        team_home_matchups = matchups.loc[matchups['home_team_id'] == tm, 'game_id'].values
+        for j in range(NUM_WEEKS - 1):
+            r_in = r_in + 1
+            for i in team_away_matchups:
+                A_in[r_in, get_index(i, j, mnf_slot)] = 1
+                for k in range(NUM_SLOTS):
+                    A_in[r_in, get_index(i, j+1, k)] = 1
+            b_in[r_in] = 1
+            
+            r_in = r_in + 1
+            for i in np.concatenate((team_away_matchups, team_home_matchups)):
+                A_in[r_in, get_index(i, j, mnf_slot)] = 1
+                A_in[r_in, get_index(i, j+1, tnf_slot)] = 1
+            b_in[r_in] = 1
+                        
     
     # 11. If playing a road Thursday game, cannot have been on road the previous week. If playing
-    #     a home Thursday game, must have either played 
-   # for game in matchups['game_id']:
-    #    prev_week_games = matchups[(matchups['Week'] == matchups.loc[game_id, 'Week'] - 1)]
-     #   for prev_game in prev_week_games['game_id']:
-      #      if matchups.loc[game, 'away_team_id'] == matchups.loc[prev_game, 'away_team_id']:
-       #         solver.Add(x[game, 1] + x[prev_game, 1] <= 1)
+    #     a home Thursday game, must have either played in same geographic division
+    #     previous week (i.e. NFC East team must have played in NFC East or AFC East stadium)
+    tnf_slot = slots.loc[slots['slot_desc'] == "TNF", 'slot_id'].iloc[0]
+    matchups['home_division_geography'] = matchups['team_division_home'].apply(lambda x: x.split()[1])
+    matchups['away_division_geography'] = matchups['team_division_away'].apply(lambda x: x.split()[1])
+    for tm in range(NUM_TEAMS):
+        team_away_matchups = matchups.loc[matchups['away_team_id'] == tm, 'game_id'].values
+        for j in range(1, NUM_WEEKS):
+            r_in = r_in + 1
+            for i in team_away_matchups:
+                A_in[r_in, get_index(i, j, tnf_slot)] = 1
+                for j in range(NUM_SLOTS):
+                    A_in[r_in, get_index(i, j-1, k)] = 1
+            b_in[r_in] = 1
+            
+        team_home_matchups = matchups.loc[matchups['home_team_id'] == tm, 'game_id'].values
+        team_far_away_matchups = matchups.loc[(matchups['away_team_id'] == tm) & 
+                                          (matchups['home_division_geography'] != matchups['away_division_geography']), 'game_id'].values
+        for j in range(1, NUM_WEEKS):
+            r_in = r_in + 1
+            for i in team_home_matchups:
+                A_in[r_in, get_index(i, j, tnf_slot)] = 1
+            for i in team_far_away_matchups:
+                for k in range(NUM_SLOTS):
+                    A_in[r_in, get_index(i, j, k)] = 1
+            b_in[r_in] = 1
 
-'''
+
+    # 12. Must be minimum quality of matchup to be in primetime
+    #     Historically, 10th percentile of arithmetic_mean_intrigue for games
+    #     in MNF has been 93, SNF has been 100, TNF has been 88
+    if NUM_SLOTS == 4:
+        r_eq = r_eq + 1
+        for i in range(NUM_MATCHUPS):
+            mean_intrigue = matchups.loc[matchups['game_id'] == i, 'arithmetic_mean_intrigue'].iloc[0]
+            for j in range(NUM_WEEKS):
+                for k in range(NUM_SLOTS):
+                    slot_desc = slots.loc[slots['slot_id'] == k, 'slot_desc'].iloc[0]
+                    if slot_desc == 'MNF' and mean_intrigue < 93:
+                        A_eq[r_eq, get_index(i,j,k)] = 1
+                    elif slot_desc == 'SNF' and mean_intrigue < 100:
+                        A_eq[r_eq, get_index(i,j,k)] = 1
+                    elif slot_desc == 'TNF' and mean_intrigue < 88:
+                        A_eq[r_eq, get_index(i,j,k)] = 1
+        b_eq[r_eq] = 0
+
     
     return A_eq, A_in, b_eq, b_in
 

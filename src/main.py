@@ -15,13 +15,11 @@ os.chdir('/Users/neil/Documents/Projects/NFL Schedule')
 from data.load_data import get_teams_and_standings, add_popularity_metrics, get_matchups
 from data.config import *
 from src.model_viewership import model_viewership
-#from create_constraints import get_index, create_constraints
 from src.create_objective_function import create_objective_function
 from src.solve_problem import get_optimal_solution
-#from save_schedule import save_schedule
 from src.define_problem import define_problem, get_index
 
-retrain_model = False
+retrain_model = True
 
 if __name__ == "__main__":
     
@@ -46,14 +44,13 @@ if __name__ == "__main__":
                     ).drop(columns=['team_name'])
     matchups = matchups.sort_values(by='game_id')
 
-    
     #A_eq, A_in, b_eq, b_in = create_constraints(teams)
-    A_eq, A_in, b_eq, b_in = define_problem(teams=teams, matchups=matchups)
-    print("Completed setting up constraint matrices")
-    f = create_objective_function(teams, matchups, intrigue_model, game_viewers_model,
+    f, matchups = create_objective_function(teams, matchups, intrigue_model, game_viewers_model,
                                    mean_intrigue_unscaled, std_intrigue_unscaled)
     print("Completed setting up objective function")
-    opt_sol, opt_objective = get_optimal_solution(A_eq, A_in, b_eq, b_in, f, teams)
+    A_eq, A_in, b_eq, b_in = define_problem(teams, matchups)
+    print("Completed setting up constraient matrices")
+    opt_sol, opt_objective = get_optimal_solution(A_eq, A_in, b_eq, b_in, f)
             
     schedule_matrix = np.full((18, 32), "", dtype="U4")
     for i in range(matchups.shape[0]):
@@ -80,5 +77,4 @@ if __name__ == "__main__":
                 if opt_sol[get_index(i,j,k)] > .5:
                     matchups_with_schedule.loc[matchups_with_schedule['game_id'] == i, 'Week'] = j + 1
                     matchups_with_schedule.loc[matchups_with_schedule['game_id'] == i, 'Slot'] = slots.loc[slots['slot_id'] == k, 'slot_desc'].iloc[0]
-    
     
