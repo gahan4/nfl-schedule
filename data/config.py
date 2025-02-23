@@ -16,3 +16,5 @@ slots = pd.DataFrame({
     'slot_desc': ['Sun', 'TNF', 'SNF', 'MNF']})
 
 NUM_SLOTS = slots.shape[0]
+
+THANKSGIVING_WEEK = 11
