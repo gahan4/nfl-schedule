@@ -48,8 +48,8 @@ for _, row in scheduled_games.iterrows():
 def format_opponent_text(opponent, slot, home):
     color_map = {
         'MNF': '#B59410', # this is a dark gold
-        'SNF': 'green',
-        'TNF': 'purple',
+        'SNF': '#32CD32',
+        'TNF': '#800080',
         'Sun': 'gray'
     }
     text_color = 'white' if home else color_map[slot]
@@ -60,7 +60,7 @@ def format_opponent_text(opponent, slot, home):
         f"padding:6px; border-radius:4px; border: 1px solid black;" 
         f"text-align: center; vertical-align: middle;"
         )
-    return f"<td style='{cell_style}'>{opponent}</td>"
+    return f"<td style='{cell_style}'><b>{opponent}</b></td>"
 
 # Write info to app
 st.write("### NFL Schedule Table")
@@ -70,7 +70,7 @@ html_table = "<table border='1' style='border-collapse: collapse; width: 100%;'>
 html_table += "<tr><th>Week</th>" + "".join(f"<th>{team}</th>" for team in schedule_df.columns) + "</tr>"
 
 for week in week_names:
-    html_table += f"<tr><td>{week}</td>"
+    html_table += f"<tr><td style='text-align: center; vertical-align: middle;'><b>{week}</b></td>"
     for team in team_names:
         opponent = schedule_df.loc[week, team]
         relevant_game_id = scheduled_games.loc[(scheduled_games['Week'] == week) & 
@@ -93,7 +93,7 @@ html_table += "</table>"
 st.markdown(html_table, unsafe_allow_html=True)
 
 st.write("### Legend")
-st.markdown("🟨 **Gold:** MNF     🟩 **Green:** SNF     🟪 **Purple:** TNF       ⬜**White:** Sun Afternoon")
+st.markdown("🟨 **Gold:** MNF &nbsp;&nbsp;&nbsp;&nbsp;🟩 **Green:** SNF&nbsp;&nbsp;&nbsp;&nbsp;🟪 **Purple:** TNF&nbsp;&nbsp;&nbsp;&nbsp;⬜ **Gray:** Sun Afternoon")
 st.markdown("**Colored Background:** Home Game, **White Background:** Away Game")
 
 
