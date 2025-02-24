@@ -8,28 +8,15 @@ Created on Sun Jan 19 10:46:08 2025
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 
 # Comment - yellow background for MNF, green for SNF, purple for TNF
 #     appears that color highlight with white text means home, opposite for road
 
-# Inject custom CSS to adjust the layout
-st.markdown(
-    """
-    <style>
-    .block-container {
-        max-width: 90%; /* Increase the maximum width of the content area */
-        padding-left: 5%; /* Adjust left margin */
-        padding-right: 5%; /* Adjust right margin */
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+st.set_page_config(page_title="NFL Schedule App", layout="wide", initial_sidebar_state="collapsed")
 
 
-teams = pd.read_csv("../results/teams.csv", index_col=False)
-scheduled_games = pd.read_csv("../results/matchups_with_schedule.csv", index_col=False)
+teams = pd.read_csv("results/teams.csv", index_col=False)
+scheduled_games = pd.read_csv("results/matchups_with_schedule.csv", index_col=False)
 week_names = sorted(scheduled_games['Week'].unique())
 team_names = sorted(teams['team_abbr'].unique())
 
@@ -66,45 +53,48 @@ def format_opponent_text(opponent, slot, home):
 # Write info to app
 st.write("### NFL Schedule Table")
 
+col1, col2 = st.columns([1,2])
 # Display legend
-st.write("### Legend")
-st.markdown(
-    """
-    - 🟨 **Gold:** Monday Night Football
-    - 🟩 **Green:** Sunday Night Football
-    - 🟪 **Purple:** Thursday Night Football
-    - ⚪ **White:** Sunday Afternoon
-    - **Colored Background:** Home Game
-    - **White Background:** Away Game
-    """
-)
+with col1:
+    st.write("### Legend")
+    st.markdown(
+        """
+        - 🟨 **Gold:** MNF
+        - 🟩 **Green:** SNF
+        - 🟪 **Purple:** TNF
+        - ⚪ **White:** Sun Afternoon
+        - **Colored Background:** Home Game
+        - **White Background:** Away Game
+        """
+    )
 
 # Write schedule df
-html_table = "<table border='1' style='border-collapse: collapse; width: 100%;'>"
-html_table += "<tr><th>Week</th>" + "".join(f"<th>{team}</th>" for team in schedule_df.columns) + "</tr>"
-
-for week in week_names:
-    html_table += f"<tr><td>{week}</td>"
-    for team in team_names:
-        opponent = schedule_df.loc[week, team]
-        relevant_game_id = scheduled_games.loc[(scheduled_games['Week'] == week) & 
-                                   ((scheduled_games['home_team_abbr'] == team) | 
-                                    (scheduled_games['away_team_abbr'] == team)), 'game_id']
-        if relevant_game_id.empty: # if team has bye this week
-            html_table += "<td style=border: 1px solid black;> </td>"
-            continue
-        else:
-            relevant_game_id = relevant_game_id.iloc[0]
-        slot = scheduled_games.loc[scheduled_games['game_id'] == relevant_game_id, 'Slot']
-        slot = slot.iloc[0] if not slot.empty else 'N/A'
-        home_team_abbr = scheduled_games.loc[scheduled_games['game_id'] == relevant_game_id, 'home_team_abbr'].iloc[0]
-        home = 1 if home_team_abbr == team else 0
-        formatted_opponent = format_opponent_text(opponent, slot, home) if opponent else ''
-        html_table += formatted_opponent
-    html_table += "</tr>"
-
-html_table += "</table>"
-st.markdown(html_table, unsafe_allow_html=True)
+with col2:
+    html_table = "<table border='1' style='border-collapse: collapse; width: 100%;'>"
+    html_table += "<tr><th>Week</th>" + "".join(f"<th>{team}</th>" for team in schedule_df.columns) + "</tr>"
+    
+    for week in week_names:
+        html_table += f"<tr><td>{week}</td>"
+        for team in team_names:
+            opponent = schedule_df.loc[week, team]
+            relevant_game_id = scheduled_games.loc[(scheduled_games['Week'] == week) & 
+                                       ((scheduled_games['home_team_abbr'] == team) | 
+                                        (scheduled_games['away_team_abbr'] == team)), 'game_id']
+            if relevant_game_id.empty: # if team has bye this week
+                html_table += "<td style=border: 1px solid black;> </td>"
+                continue
+            else:
+                relevant_game_id = relevant_game_id.iloc[0]
+            slot = scheduled_games.loc[scheduled_games['game_id'] == relevant_game_id, 'Slot']
+            slot = slot.iloc[0] if not slot.empty else 'N/A'
+            home_team_abbr = scheduled_games.loc[scheduled_games['game_id'] == relevant_game_id, 'home_team_abbr'].iloc[0]
+            home = 1 if home_team_abbr == team else 0
+            formatted_opponent = format_opponent_text(opponent, slot, home) if opponent else ''
+            html_table += formatted_opponent
+        html_table += "</tr>"
+    
+    html_table += "</table>"
+    st.markdown(html_table, unsafe_allow_html=True)
 
 
 # Provide a link to go to the team-specific schedule page
