@@ -8,6 +8,7 @@ Created on Sun Jan 19 10:46:08 2025
 
 import streamlit as st
 import pandas as pd
+import os
 
 # Comment - yellow background for MNF, green for SNF, purple for TNF
 #     appears that color highlight with white text means home, opposite for road
@@ -25,6 +26,9 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+st.write(f"Current working directory: {os.getcwd()}")
+'''
 
 teams = pd.read_csv("results/teams.csv", index_col=False)
 scheduled_games = pd.read_csv("results/matchups_with_schedule.csv", index_col=False)
@@ -100,3 +104,4 @@ st.markdown("**Colored Background:** Home Game, **White Background:** Away Game"
 #st.write("Want to see a team's schedule? Click below:")
 #st.write("[Go to Team Schedule](single_team.py)")
 
+'''
