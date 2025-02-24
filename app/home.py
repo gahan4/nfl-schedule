@@ -27,11 +27,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.write(f"Current working directory: {os.getcwd()}")
-'''
-
 teams = pd.read_csv("results/teams.csv", index_col=False)
-scheduled_games = pd.read_csv("results/matchups_with_schedule.csv", index_col=False)
+scheduled_games = pd.read_csv("results/scheduled_games.csv", index_col=False)
 week_names = sorted(scheduled_games['Week'].unique())
 team_names = sorted(teams['team_abbr'].unique())
 
@@ -43,7 +40,7 @@ schedule_df = pd.DataFrame('', index=week_names, columns=team_names)
 
 # Populate the schedule table
 for _, row in scheduled_games.iterrows():
-    week, home_team, away_team, slot = row['Week'], row['home_team_abbr'], row['away_team_abbr'], row['Slot']
+    week, home_team, away_team, slot = row['Week'], row['team_abbr_home'], row['team_abbr_away'], row['Slot']
     schedule_df.loc[week, home_team] = f'{away_team}'
     schedule_df.loc[week, away_team] = f'{home_team}'
 
@@ -104,4 +101,3 @@ st.markdown("**Colored Background:** Home Game, **White Background:** Away Game"
 #st.write("Want to see a team's schedule? Click below:")
 #st.write("[Go to Team Schedule](single_team.py)")
 
-'''
