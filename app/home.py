@@ -10,6 +10,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
+# Comment - yellow background for MNF, green for SNF, purple for TNF
+#     appears that color highlight with white text means home, opposite for road
+
 # Inject custom CSS to adjust the layout
 st.markdown(
     """
@@ -26,35 +29,83 @@ st.markdown(
 
 
 teams = pd.read_csv("../results/teams.csv", index_col=False)
-scheduled_games = pd.read_csv("../results/scheduled_games.csv", index_col=False)
+scheduled_games = pd.read_csv("../results/matchups_with_schedule.csv", index_col=False)
+week_names = sorted(scheduled_games['Week'].unique())
+team_names = sorted(teams['team_abbr'].unique())
 
 st.session_state['teams'] = teams
 st.session_state['scheduled_games'] = scheduled_games
 
-st.title("Welcome to the NFL Schedule App")
+# Create an empty DataFrame for the schedule table
+schedule_df = pd.DataFrame('', index=week_names, columns=team_names)
 
-# Create the schedule matrix
-schedule_matrix = np.full((18, 32), "", dtype="U4")
-for r in range(scheduled_games.shape[0]):
-    stadium_num, visiting_team_num, week_num =scheduled_games.loc[r, ['Stadium', 'Team', 'Week']].values
-    
-    if stadium_num == visiting_team_num:
-        continue
-    
-    home_team = teams.loc[teams['team_id'] == stadium_num, 'team_abbr'].iloc[0]
-    visiting_team = teams.loc[teams['team_id'] == visiting_team_num, 'team_abbr'].iloc[0]
-    
-    schedule_matrix[week_num, visiting_team_num] = f'@{home_team}'
-    schedule_matrix[week_num, stadium_num] = visiting_team
-    
-schedule_matrix = pd.DataFrame(schedule_matrix,
-                               index = [i for i in range(1,19)],
-                               columns = teams['team_abbr'].values)
-schedule_matrix.index.name = 'Wk'
+# Populate the schedule table
+for _, row in scheduled_games.iterrows():
+    week, home_team, away_team, slot = row['Week'], row['home_team_abbr'], row['away_team_abbr'], row['Slot']
+    schedule_df.loc[week, home_team] = f'{away_team}'
+    schedule_df.loc[week, away_team] = f'{home_team}'
 
-st.write(schedule_matrix)
+# Function to get colored text based on slot
+def format_opponent_text(opponent, slot, home):
+    color_map = {
+        'MNF': '#B59410', # this is a dark gold
+        'SNF': 'green',
+        'TNF': 'purple',
+        'Sun': 'gray'
+    }
+    text_color = 'white' if home else color_map[slot]
+    background_color = color_map[slot] if home else 'white'
 
-st.session_state['schedule_matrix'] = schedule_matrix
+    cell_style = (
+        f"background-color:{background_color}; color:{text_color};"
+        f"padding:6px; border-radius:4px; border: 1px solid black;" 
+        f"text-align: center; vertical-align: middle;"
+        )
+    return f"<td style='{cell_style}'>{opponent}</td>"
+
+# Write info to app
+st.write("### NFL Schedule Table")
+
+# Display legend
+st.write("### Legend")
+st.markdown(
+    """
+    - 🟨 **Gold:** Monday Night Football
+    - 🟩 **Green:** Sunday Night Football
+    - 🟪 **Purple:** Thursday Night Football
+    - ⚪ **White:** Sunday Afternoon
+    - **Colored Background:** Home Game
+    - **White Background:** Away Game
+    """
+)
+
+# Write schedule df
+html_table = "<table border='1' style='border-collapse: collapse; width: 100%;'>"
+html_table += "<tr><th>Week</th>" + "".join(f"<th>{team}</th>" for team in schedule_df.columns) + "</tr>"
+
+for week in week_names:
+    html_table += f"<tr><td>{week}</td>"
+    for team in team_names:
+        opponent = schedule_df.loc[week, team]
+        relevant_game_id = scheduled_games.loc[(scheduled_games['Week'] == week) & 
+                                   ((scheduled_games['home_team_abbr'] == team) | 
+                                    (scheduled_games['away_team_abbr'] == team)), 'game_id']
+        if relevant_game_id.empty: # if team has bye this week
+            html_table += "<td style=border: 1px solid black;> </td>"
+            continue
+        else:
+            relevant_game_id = relevant_game_id.iloc[0]
+        slot = scheduled_games.loc[scheduled_games['game_id'] == relevant_game_id, 'Slot']
+        slot = slot.iloc[0] if not slot.empty else 'N/A'
+        home_team_abbr = scheduled_games.loc[scheduled_games['game_id'] == relevant_game_id, 'home_team_abbr'].iloc[0]
+        home = 1 if home_team_abbr == team else 0
+        formatted_opponent = format_opponent_text(opponent, slot, home) if opponent else ''
+        html_table += formatted_opponent
+    html_table += "</tr>"
+
+html_table += "</table>"
+st.markdown(html_table, unsafe_allow_html=True)
+
 
 # Provide a link to go to the team-specific schedule page
 #st.write("Want to see a team's schedule? Click below:")
