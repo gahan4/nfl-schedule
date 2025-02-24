@@ -26,8 +26,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-teams = pd.read_csv("../results/teams.csv", index_col=False)
-scheduled_games = pd.read_csv("../results/matchups_with_schedule.csv", index_col=False)
+teams = pd.read_csv("results/teams.csv", index_col=False)
+scheduled_games = pd.read_csv("results/matchups_with_schedule.csv", index_col=False)
 week_names = sorted(scheduled_games['Week'].unique())
 team_names = sorted(teams['team_abbr'].unique())
 
