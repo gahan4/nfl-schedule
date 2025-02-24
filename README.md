@@ -59,14 +59,13 @@ python src/schedule_optimizer.py
 
 ## 📝 Repository Structure
 ```
-NFL-Scheduling-Project/
+nfl-schedule/
 │
 ├─ 📄 README.md        # Project overview
-├─ 📊 notebooks/       # Jupyter notebooks for analysis and results
+├─ 📄 data/            # Code to scrape data, csv's with manually scraped data
 ├─ 🟢 src/             # Python scripts for data processing and modeling
-├─ 📈 app/             # Python scripts to run the Streamlit app
-├─ 📄 data/            # 
-└─ 📜 docs/            # Additional documentation
+├─ 📊 results/         # A directory containing stored results information
+└─ 📈 app/             # Python scripts to run the Streamlit app
 ```
 
 ---
@@ -75,7 +74,6 @@ NFL-Scheduling-Project/
 - NFL viewership data sourced from publicly available datasets.
 - NFL and Gurobi Videos
 - https://www.youtube.com/watch?v=bS1xGetyrh0&ab_channel=NFL, 
-- Optimization approach inspired by operations research methodologies.
 
 
 ---
@@ -84,9 +82,5 @@ NFL-Scheduling-Project/
 
 
 
-
-
 Note also that this project does not utilize Gurobi, Cplex, or any
-other commercial solver. As a result, some shortcuts needed to be taken
-for the optimization. As conceived, the problem has in the range of 
-20000 variables and 3000 constraints (1000 ineq, 2000 eq). 
+other commercial solver.
