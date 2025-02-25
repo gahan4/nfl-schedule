@@ -43,7 +43,14 @@ def define_problem(teams, matchups):
             - All teams playing home Thursday games must play within division
               or same division other conference (i.e. AFC East vs NFC East)
               during previous week
+            - Teams that play Thursday after Thanksgiving must have played
+                on Thanksgiving
+            - Teams that play on Thursday can't have played previous SNF or MNF
+            - Cannot travel more than two time zones for Thursday game
         12. Minimum threshold of game quality for primetime game
+        13. Max 5 total primetime games per team, max 2 in any 5 week stretch
+        14. Cannot be away for first 2 games of seaon or final two games of season
+        15. In any 5 week stretch, cannot be home more than 3 games
 
     Parameters
     ----------
@@ -63,11 +70,9 @@ def define_problem(teams, matchups):
     # One variable per matchup/week/slot pairing
     num_vars = NUM_MATCHUPS * NUM_WEEKS * NUM_SLOTS
     A_eq = lil_matrix((10000, num_vars))
-   #A_eq = np.zeros([10000, num_vars])
-    A_in = lil_matrix((10000, num_vars))
-    #A_in = np.zeros([10000, num_vars])
+    A_in = lil_matrix((20000, num_vars))
     b_eq = np.zeros(10000)
-    b_in = np.zeros(10000)
+    b_in = np.zeros(20000)
     r_eq = -1
     r_in = -1
     
@@ -166,10 +171,9 @@ def define_problem(teams, matchups):
             b_in[r_in] = 1
             
     # 7. Games where team must be home/road
-    #    NOTE - Actual practitioners would know the full gamut here, but
-    #     I'm just going to assume the Thanksgiving games and some
-    #     baseball interference with BAL, KC, PHI
+    #    NOTE - Actual practitioners would know the full gamut here
     #    DET and DAL must be home for Thanksgiving (Week 12)
+    #    PHI must be home to open season on Thursday
     tnf_slot = slots.loc[slots['slot_desc'] == "TNF", 'slot_id'].iloc[0]
     for tm in ['Dallas Cowboys', 'Detroit Lions']:
         team_home_matchups = matchups.loc[matchups['Home'] == tm, 'game_id'].values
@@ -177,6 +181,13 @@ def define_problem(teams, matchups):
         for i in team_home_matchups:
             A_eq[r_eq, get_index(i, THANKSGIVING_WEEK, tnf_slot)] = 1
         b_eq[r_eq] = 1
+    for tm in ['Philadelphia Eagles']:
+        team_home_matchups = matchups.loc[matchups['Home'] == tm, 'game_id'].values
+        r_eq = r_eq + 1
+        for i in team_home_matchups:
+            A_eq[r_eq, get_index(i, 0, tnf_slot)] = 1
+        b_eq[r_eq] = 1
+
     
     # 8. Each week contains 1 SNF game, 1 MNF game, and 1 TNF game, with following
     #   exceptions:
@@ -239,7 +250,6 @@ def define_problem(teams, matchups):
     #     - Teams that play a road game on Monday cannot play on the road the following week.
     #     - Any team that plays on Monday can't play on the next Thursday 
     mnf_slot = slots.loc[slots['slot_desc'] == "MNF", 'slot_id'].iloc[0]
-    tnf_slot = slots.loc[slots['slot_desc'] == "TNF", 'slot_id'].iloc[0]
     for tm in range(NUM_TEAMS):
         team_away_matchups = matchups.loc[matchups['away_team_id'] == tm, 'game_id'].values
         team_home_matchups = matchups.loc[matchups['home_team_id'] == tm, 'game_id'].values
@@ -258,10 +268,17 @@ def define_problem(teams, matchups):
             b_in[r_in] = 1
                         
     
-    # 11. If playing a road Thursday game, cannot have been on road the previous week. If playing
-    #     a home Thursday game, must have either played in same geographic division
-    #     previous week (i.e. NFC East team must have played in NFC East or AFC East stadium)
+    # 11. Thursday Rules
+    #     - If playing a road Thursday game, cannot have been on road the previous week. 
+    #     - If playing  a home Thursday game, must have either played in same geographic division
+    #      previous week (i.e. NFC East team must have played in NFC East or AFC East stadium)
+    #     - The teams that play on Thursday the week after Thanksgiving must have also played
+    #       on Thanksgiving
+    #     - Teams that play on Thursday can't have played previous SNF or MNF
+    #     - Cannot travel more than two time zones for Thursday game
     tnf_slot = slots.loc[slots['slot_desc'] == "TNF", 'slot_id'].iloc[0]
+    mnf_slot = slots.loc[slots['slot_desc'] == "MNF", 'slot_id'].iloc[0]
+    snf_slot = slots.loc[slots['slot_desc'] == "SNF", 'slot_id'].iloc[0]
     matchups['home_division_geography'] = matchups['team_division_home'].apply(lambda x: x.split()[1])
     matchups['away_division_geography'] = matchups['team_division_away'].apply(lambda x: x.split()[1])
     for tm in range(NUM_TEAMS):
@@ -285,8 +302,44 @@ def define_problem(teams, matchups):
                 for k in range(NUM_SLOTS):
                     A_in[r_in, get_index(i, j, k)] = 1
             b_in[r_in] = 1
-
-
+    
+    # Week after thanksgiving rule - code up by forcing restraint that for each
+    # matchup, 2 "points" if it occurs Thurs after thanksgiving, so must
+    # get -1 point back for each of the two teams playing on Thanksgiving.
+    for i in range(NUM_MATCHUPS):
+        home_id = matchups.loc[matchups['game_id'] == i, 'home_team_id'].iloc[0]
+        away_id = matchups.loc[matchups['game_id'] == i, 'away_team_id'].iloc[0]
+        matchups_involving_teams = matchups.loc[(matchups['home_team_id'].isin([home_id, away_id])) |
+                                            (matchups['away_team_id'].isin([home_id, away_id])), 'game_id'].values
+        r_in = r_in + 1
+        A_in[r_in, get_index(i, THANKSGIVING_WEEK + 1, tnf_slot)] = 2
+        for i in matchups_involving_teams:
+            A_in[r_in, get_index(i, THANKSGIVING_WEEK, tnf_slot)] = -1.5
+        b_in[r_in] = 0
+        
+    # Cannot play on Thursday if played previous SNF or MNF
+    for tm in range(NUM_TEAMS):
+        team_matchups = matchups.loc[(matchups['away_team_id'] == tm) |
+                                     (matchups['home_team_id'] == tm), 'game_id'].values
+        for j in range(1, NUM_WEEKS):            
+            r_in = r_in + 1
+            for i in team_matchups:
+                A_in[r_in, get_index(i, j-1, mnf_slot)] = 1
+                A_in[r_in, get_index(i, j-1, snf_slot)] = 1
+                A_in[r_in, get_index(i, j, tnf_slot)] = 1
+            b_in[r_in] = 1
+    
+    # Cannot travel more than 2 time zones for Thursday game - in other words
+    # no Thursday games can feature 1 time from ET and 1 time from PT
+    r_eq = r_eq + 1
+    for i in range(NUM_MATCHUPS):
+        time_zones = [matchups.at[i,'home_time_zone'], matchups.at[i,'away_time_zone']]
+        if sum(x == 'ET' for x in time_zones) == 1 and sum(x == 'PT' for x in time_zones) == 1:
+             for j in range(NUM_WEEKS):
+                A_eq[r_eq, get_index(i, j, tnf_slot)] = 1
+    b_eq[r_eq] = 0
+        
+    
     # 12. Must be minimum quality of matchup to be in primetime
     #     Historically, 10th percentile of arithmetic_mean_intrigue for games
     #     in MNF has been 93, SNF has been 100, TNF has been 88
@@ -304,6 +357,76 @@ def define_problem(teams, matchups):
                     elif slot_desc == 'TNF' and mean_intrigue < 88:
                         A_eq[r_eq, get_index(i,j,k)] = 1
         b_eq[r_eq] = 0
+        
+    # 13. Max 5 total primetime games per team. Max 2 primetime games in 
+    #     any 5 week stretch.
+    primetime_slots = slots.loc[slots['slot_desc'].isin(['SNF', 'MNF', 'TNF']), 'slot_id'].values
+    for tm in range(NUM_TEAMS):
+        r_in = r_in + 1
+        team_matchups = matchups.loc[(matchups['home_team_id'] == tm) | 
+                                     (matchups['away_team_id'] == tm), 'game_id'].values
+        for i in team_matchups:
+            for j in range(NUM_WEEKS):
+                for k in primetime_slots:
+                    A_in[r_in, get_index(i,j,k)] = 1
+        b_in[r_in] = 5
+        
+        for j in range(NUM_WEEKS - 4):
+            r_in = r_in + 1
+            for i in team_matchups:
+                for k in primetime_slots:
+                    A_in[r_in, get_index(i, j, k)] = 1
+                    A_in[r_in, get_index(i, j+1, k)] = 1
+                    A_in[r_in, get_index(i, j+2, k)] = 1
+                    A_in[r_in, get_index(i, j+3, k)] = 1
+                    A_in[r_in, get_index(i, j+4, k)] = 1
+            b_in[r_in] = 2
+        
+    # 14. Cannot be away for first two games of season or final two games of season
+    for tm in range(NUM_TEAMS):
+        team_home_matchups = matchups.loc[matchups['home_team_id'] == tm, 'game_id'].values
+        r_in = r_in + 1
+        for i in team_home_matchups:
+            for k in range(NUM_SLOTS):
+                A_in[r_in, get_index(i, 0, k)] = -1
+                A_in[r_in, get_index(i, 1, k)] = -1
+        b_in[r_in] = -1
+        r_in = r_in + 1
+        for i in team_home_matchups:
+            for k in range(NUM_SLOTS):
+                A_in[r_in, get_index(i, NUM_WEEKS - 2, k)] = -1
+                A_in[r_in, get_index(i, NUM_WEEKS - 1, k)] = -1
+        b_in[r_in] = -1
+        
+    # 15. In any 5 week stretch, cannot be home more than 3 games
+    for tm in range(NUM_TEAMS):
+        team_home_matchups = matchups.loc[matchups['home_team_id'] == tm, 'game_id'].values
+        for j in range(NUM_WEEKS - 4):
+            r_in = r_in + 1
+            for i in team_home_matchups:
+                for k in range(NUM_SLOTS):
+                    A_in[r_in, get_index(i, j, k)] = 1
+                    A_in[r_in, get_index(i, j+1, k)] = 1
+                    A_in[r_in, get_index(i, j+2, k)] = 1
+                    A_in[r_in, get_index(i, j+3, k)] = 1
+                    A_in[r_in, get_index(i, j+4, k)] = 1
+            b_in[r_in] = 3
+
+    # 16. Cannot play road game against team coming off bye
+    for tm in range(NUM_TEAMS):
+        team_away_matchups = matchups.loc[matchups['away_team_id'] == tm, 'game_id'].values
+        for i in team_away_matchups:
+            opposing_team = matchups.loc[matchups['game_id'] == i, 'home_team_id'].iloc[0]
+            opposing_team_matchups = matchups.loc[(matchups['away_team_id'] == opposing_team) |
+                                                  (matchups['home_team_id'] == opposing_team), 'game_id'].values
+            for j in range(1, NUM_WEEKS):
+                r_in = r_in + 1
+                for k in range(NUM_SLOTS):
+                    A_in[r_in, get_index(i, j, k)] = 1
+                for i_opp in opposing_team_matchups:
+                    for k in range(NUM_SLOTS):
+                        A_in[r_in, get_index(i_opp, j-1, k)] = -1
+                b_in[r_in] = 0
 
     
     return A_eq, A_in, b_eq, b_in
