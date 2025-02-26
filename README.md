@@ -12,10 +12,11 @@ A (still-in-testing) app that displays the optimal schedule and provides insight
 
 ## How It Works
 ### **Data Collection**
-Using a variety of public sources, data was collected
- Each team's record in the previous season
-- Historical NFL viewership data for 2022-23 primetime games was manually added. 
-- As a proxy for popularity, team Twitter follower counts were used.
+** Using a variety of public sources, historical data was collected to aid in projecting viewership numbers, such as:
+** - Record of each team in each season
+- Number of twitter followers of each team
+- Size of each team's home market
+Additionally, the list of 272 matchups scheduled for the 2025 NFL Regular Season was pulled from the league website.
 
 ### **Modeling Approach**
 Two-step process for determining number of likely viewers for primetime game. 
