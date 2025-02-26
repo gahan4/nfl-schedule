@@ -12,8 +12,8 @@ A (still-in-testing) app that displays the optimal schedule and provides insight
 
 ## How It Works
 ### **Data Collection**
-** Using a variety of public sources, historical data was collected to aid in projecting viewership numbers, such as:
-** - Record of each team in each season
+Using a variety of public sources, historical data was collected to aid in projecting viewership numbers, such as:
+- Record of each team in each season
 - Number of twitter followers of each team
 - Size of each team's home market
 Additionally, the list of 272 matchups scheduled for the 2025 NFL Regular Season was pulled from the league website.
@@ -34,9 +34,15 @@ This schedule probably isn't ready for the prime time. Here are some areas where
 
 ---
 ### App Overview
+The app currently has two primary components. Upon opening, it presents a league schedule in a form similar to how the NFL seems to present them currently. All games are laid out in a grid, with cells colored/shaded according to the slot of the game and whether the team is home or away. A legend at the bottom of the provides reference to what the colors and shades mean.
 
-![League Schedule]([https://private-user-images.githubusercontent.com/195987004/417015075-cbedb39d-3c17-47de-a512-2265e7dcdd06.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDA1NTIyNjAsIm5iZiI6MTc0MDU1MTk2MCwicGF0aCI6Ii8xOTU5ODcwMDQvNDE3MDE1MDc1LWNiZWRiMzlkLTNjMTctNDdkZS1hNTEyLTIyNjVlN2RjZGQwNi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUwMjI2JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MDIyNlQwNjM5MjBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mMjA1YmIwNzBjZDgwYjBhMGRkMjBmN2YyNmNjNmQ0NGE0ZjkwM2E5N2M4ZDRkNzVmZGY4ZTRmMjhiYmU2Y2M1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.tGSEm8qccHfvhAXkxifPQIUqKIlxfUEA9nK9sKM3MZc
-))
+![League Schedule](https://github.com/gahan4/nfl-schedule/blob/main/results/LeagueScheduleImage.png?raw=true)
+
+If the user clicks on the "Team Schedule" tab at the top of the page, they are redirected to view the schedule of an individual team. The schedule shows key information, as well as information that is helpful in understanding the viewership projection of the game. The "Game Intrigue Percentile" column of this table indicates how intriguing the game is, relative to the 272 regular season games to be scheduled, in percentile form. Highly intriguing games have high numbers, less intriguing games have lower numbers. On this page, the user can use the dropdown at the top of the page to view the schedule of any team.
+
+![Team Schedule](https://github.com/gahan4/nfl-schedule/blob/main/results/TeamScheduleImage.png?raw=true)
+
+
 
 ---
 
