@@ -10,8 +10,6 @@ import numpy as np
 import pandas as pd
 import os as os
 
-os.chdir('/Users/neil/Documents/Projects/NFL Schedule')
-
 from data.load_data import get_teams_and_standings, add_popularity_metrics, get_matchups
 from data.config import *
 from src.model_viewership import model_viewership
@@ -30,17 +28,17 @@ if __name__ == "__main__":
     teams = add_popularity_metrics(teams)
     matchups = get_matchups()
     
-    matchups = matchups.merge(teams[['team_id', 'team_name', 'team_abbr', 'team_division']],
+    matchups = matchups.merge(teams[['team_id', 'team_name', 'team_abbr', 'team_division', 'time_zone']],
                               how='inner',
                        left_on='Home', right_on='team_name'
         ).rename(columns={'team_id': 'home_team_id', 'team_abbr': 'home_team_abbr',
-                          'team_division': 'home_division'}
+                          'team_division': 'home_division', 'time_zone': 'home_time_zone'}
                  ).drop(columns=['team_name']).merge(
-           teams[['team_id', 'team_name', 'team_abbr', 'team_division']],
+           teams[['team_id', 'team_name', 'team_abbr', 'team_division', 'time_zone']],
                           how='inner',
                           left_on='Away', right_on='team_name'
            ).rename(columns={'team_id': 'away_team_id', 'team_abbr': 'away_team_abbr',
-                             'team_division': 'away_division'}
+                             'team_division': 'away_division', 'time_zone': 'away_time_zone'}
                     ).drop(columns=['team_name'])
     matchups = matchups.sort_values(by='game_id')
 
@@ -53,7 +51,7 @@ if __name__ == "__main__":
     opt_sol, opt_objective = get_optimal_solution(A_eq, A_in, b_eq, b_in, f)
             
     schedule_matrix = np.full((18, 32), "", dtype="U4")
-    for i in range(matchups.shape[0]):
+    for i in range(NUM_MATCHUPS):
         for j in range(NUM_WEEKS):
             for k in range(NUM_SLOTS):
                 this_index = get_index(i,j,k)
@@ -78,3 +76,6 @@ if __name__ == "__main__":
                     matchups_with_schedule.loc[matchups_with_schedule['game_id'] == i, 'Week'] = j + 1
                     matchups_with_schedule.loc[matchups_with_schedule['game_id'] == i, 'Slot'] = slots.loc[slots['slot_id'] == k, 'slot_desc'].iloc[0]
     
+    
+    teams.to_csv("results/teams.csv")
+    matchups_with_schedule.to_csv("results/scheduled_games.csv")
