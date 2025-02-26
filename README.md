@@ -21,6 +21,9 @@ A (still-in-testing) app that displays the optimal schedule and provides insight
 ### **Modeling Approach**
 - Two-step process for determining number of likely viewers for primetime game. Firstly, "intrigue score" for each team calculated based on their win percentage in previous season and  
 - Integer programming is used to optimize time slot assignments while respecting constraints.
+
+### ** Where It Falls Short**
+This schedule probably isn't ready for the prime time. Here are some areas where it falls short, relative to what would be required for a real NFL schedule:
 - 
 
 ---
@@ -64,13 +67,3 @@ nfl-schedule/
 - https://www.youtube.com/watch?v=bS1xGetyrh0&ab_channel=NFL, 
 
 ### **Packages Used**
-
-
----
-
-💬 *For questions, feedback, or collaboration opportunities, feel free to reach out via GitHub issues or pull requests!*
-
-
-
-Note also that this project does not utilize Gurobi, Cplex, or any
-other commercial solver.
