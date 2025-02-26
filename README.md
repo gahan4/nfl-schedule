@@ -24,7 +24,7 @@ Two-step process for determining number of likely viewers for primetime game.
 - Using the intrigue and viewership models, a projected viewership number for all 2025 games was created.
 - Using integer optimization techniques, an optimal schedule that satisfied a host of the league's scheduling constraints was created.
 
-### ** Where It Falls Short**
+### Where It Falls Short
 This schedule probably isn't ready for the prime time. Here are some areas where it falls short, relative to what would be required for a real NFL schedule:
 - Viewership data was collected from public sources from just 2 seasons of games (2022-23), and only for games in the traditional primetime windows. Real practitioners would hopefully have a much more robust viewership dataset. 
 - Only a small number of variables were tested to create the viewership model, and just 2 were included in the final model. Real practitioners would probably spend more time collecting possible factors for their viewership model and testing different model architectures with their more robust dataset.
