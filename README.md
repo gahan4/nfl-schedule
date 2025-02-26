@@ -35,7 +35,7 @@ This schedule probably isn't ready for the prime time. Here are some areas where
 ---
 ### App Overview
 
-![League Schedule]([https://github.com/user/repo/assets/image.png](https://github.com/user-attachments/assets/cbedb39d-3c17-47de-a512-2265e7dcdd06
+![League Schedule]([https://private-user-images.githubusercontent.com/195987004/417015075-cbedb39d-3c17-47de-a512-2265e7dcdd06.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDA1NTIyNjAsIm5iZiI6MTc0MDU1MTk2MCwicGF0aCI6Ii8xOTU5ODcwMDQvNDE3MDE1MDc1LWNiZWRiMzlkLTNjMTctNDdkZS1hNTEyLTIyNjVlN2RjZGQwNi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUwMjI2JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MDIyNlQwNjM5MjBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mMjA1YmIwNzBjZDgwYjBhMGRkMjBmN2YyNmNjNmQ0NGE0ZjkwM2E5N2M4ZDRkNzVmZGY4ZTRmMjhiYmU2Y2M1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.tGSEm8qccHfvhAXkxifPQIUqKIlxfUEA9nK9sKM3MZc
 ))
 
 ---
