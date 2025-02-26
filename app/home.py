@@ -19,19 +19,7 @@ st.markdown(
     """
     <style>
     body {
-        zoom: 0.75;
-        -moz-transform: scale(0.75);
-        -moz-transform-origin: 0 0;
-        height: 100vh;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-    }
-    html, body, [data-testid="stApp"] {
-        height: 100%;
-        width: 100%;
-        margin: 0;
-        padding: 0;
+        zoom: 0.7;
     }
     div.stTabs {
         display: flex;
@@ -41,24 +29,29 @@ st.markdown(
     }
     /* New styles for wider text display */
     h1, h2, h3, h4, h5, h6, p {
-        width: 100%;
-        text-align: left;
         white-space: nowrap;
     }
-    .game-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 12px;
-    margin: 4px 2px;
-    cursor: pointer;
-    border-radius: 4px;
+    th {
+        font-size: 18px;
     }
-
+    .week-highlight {
+        font-weight: bold;
+        font-size: 18px;
+        text-align: center;
+    }
+    .bye-week {
+        text-align: center;
+        font-weight: bold;
+        background-color: #71797E;
+    }
+    .stApp {
+        background-color: #0e1117;
+        color: white
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: white !important;
+        font-weight: bold;
+    }
    </style>
     """,
     unsafe_allow_html=True
@@ -104,6 +97,42 @@ def format_opponent_text(opponent, slot, home):
         )
     return f"<td style='{cell_style}'><b>{opponent}</b></td>"
 
+# Function to format the color for the intrigue perentile
+def get_intrigue_color(percentile):
+    '''
+    Function to create the HTML style for the intrigue percentile column. Green
+    background is very high ranked game, red background is very low ranked game.
+    
+    Parameters
+    ----------
+    percentile : Int
+        The percentile (from 0 to 100) that the game's intrigue falls in
+
+    Returns
+    -------
+    str
+        HTML style string.
+
+    '''
+    rgb_high = (49, 222, 40) # the color for 100th percentile
+    rgb_low = (212, 36, 73) # color for 0th percentils
+    # Convert percentile to a color scale from red (low) to white (mid) to green (high)
+    color_int = [int((255 - rgb_low[x])/50.0 * percentile + rgb_low[x]) if percentile <= 50 else int((rgb_high[x] - 255) / 50 * percentile + 2 * 255 - rgb_high[x]) for x in range(3)]
+    color_hex = [hex(color_int[x])[2:] for x in range(3)]
+    color_hex = [f"0{color_hex[x]}" if len(color_hex[x]) == 1 else color_hex[x] for x in range(3)]
+    color_string = "".join(color_hex).upper()
+    
+    text_color = 'black' if percentile >= 25 and percentile <= 75 else 'white'
+    
+    cell_style = (
+        f"background-color: #{color_string}; color:{text_color};"
+        "width: 150px;"
+        f"padding:6px; border-radius:4px; border: 1px solid black;" 
+        "font-weight: bold;"
+        "text-align: center;"
+    )
+    
+    return f"<td style='{cell_style}'><b>{percentile:.0f}</b></td>"
 
 
 selected_page = st.tabs(["🏈 League Schedule", "📅 Team Schedule", "📊 Analysis"])
@@ -120,7 +149,7 @@ with selected_page[0]:
     html_table += "<tr><th>Week</th>" + "".join(f"<th>{team}</th>" for team in schedule_df.columns) + "</tr>"
     
     for week in week_names:
-        html_table += f"<tr><td style='text-align: center; vertical-align: middle;'><b>{week}</b></td>"
+        html_table += f"<tr><td class = 'week-highlight'>{week}</td>"
         for team in team_names:
             opponent = schedule_df.loc[week, team]
             relevant_game_id = scheduled_games.loc[(scheduled_games['Week'] == week) & 
@@ -148,31 +177,6 @@ with selected_page[0]:
         
 # Individual team page
 with selected_page[1]:
-    st.markdown(
-    """
-    <style>
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    th, td {
-        border: 1px solid black;
-        padding: 8px;
-        text-align: center;
-    }
-    th {
-        background-color: #f2f2f2;
-    }
-    .bye-week {
-        text-align: center;
-        font-weight: bold;
-        background-color: #e0e0e0;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-    )
-
     team_choice = st.selectbox("Select a team:", team_names)
     team_schedule = scheduled_games[(scheduled_games['home_team_abbr'] == team_choice) |
                                     (scheduled_games['away_team_abbr'] == team_choice)]
@@ -181,24 +185,79 @@ with selected_page[1]:
     team_schedule['Date'] = 'Date'
     team_schedule['Opponent_Intrigue'] = team_schedule.apply(lambda row: row['intrigue_home'] if team_choice == row['away_team_abbr'] else row['intrigue_away'], axis=1)
 
-    if not team_schedule.empty:
+    col1, col2 = st.columns([100, 1], gap = "large") 
+    # In the left column, display 
+    with col1:  
+        
         st.write(f"### Schedule for {team_choice}")
         
         html_schedule = "<table>"
-        html_schedule += "<tr><th>Week</th><th>Date</th><th>Slot</th><th>Opponent</th><th>Opponent Intrigue</th><th>Projected Viewers</th><th>Game Intrigue Percentile</th></tr>"
+        html_schedule += "<tr><th>Week</th><th>Date</th><th>Slot</th><th>Opponent</th><th>Opponent Intrigue</th><th>Projected Viewers</th><th style='min-width: 150px;'>Game Intrigue Percentile</th></tr>"
         
         for wk in week_names:
             if wk in team_schedule['Week'].values:
                 row = team_schedule[team_schedule['Week'] == wk].iloc[0]
-                html_schedule += f"<tr><td>{row['Week']}</td><td>{row['Date']}</td><td>{row['Slot']}</td><td>{row['Opponent']}</td><td>{row['Opponent_Intrigue']:.0f}</td><td>{row['SNF_Viewers']:.1f}</td><td>{row['Intrigue_Percentile']:.0f}%</td></tr>"
+                html_schedule += f"<tr><td>{row['Week']}</td><td>{row['Date']}</td><td>{row['Slot']}</td><td>{row['Opponent']}</td><td>{row['Opponent_Intrigue']:.0f}</td><td>{row['SNF_Viewers']:.1f}</td>"
+                html_schedule += get_intrigue_color(row['Intrigue_Percentile'])
+                html_schedule += "</tr>"
             else: # bye week
                 html_schedule += f"<tr><td>{wk}</td><td colspan='6' class='bye-week'>BYE WEEK</td></tr>"
 
         html_schedule += "</table>"
         st.markdown(html_schedule, unsafe_allow_html=True)
-    else:
-        st.write("No schedule available for this team.")
-
-
-
+        
+            
     
+# =============================================================================
+#     with col2:
+#         # Display additional team information in an HTML table        
+#         team_info = teams[teams['team_abbr'] == team_choice].iloc[0]
+#         
+#         record = f"{team_info['W']}-{team_info['L']}"
+#         record_rank = teams['WinPct'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+#         twitter_followers = team_info['twitter_followers'] / 1000000
+#         if twitter_followers <= 1:
+#             twitter_followers = int(twitter_followers * 1000)
+#             twitter_followers_string = f"{twitter_followers} K"
+#         else:
+#             twitter_followers_string = f"{twitter_followers:.1f} M"
+#         twitter_rank = teams['twitter_followers'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+#         intrigue = team_info['intrigue']
+#         intrigue_rank = teams['intrigue'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+#         
+#         team_info_df = pd.DataFrame({
+#             "Metric": ["Record", "Record Rank", "Twitter Followers", "Twitter Rank", "Intrigue Score", "Intrigue Rank"],
+#             "Value": [record, record_rank, twitter_followers_string, twitter_rank, intrigue_rank, intrigue_rank]
+#         })        
+#         
+#         html_team_info = f"""
+#         <table>
+#             <tr>
+#                 <th>Category</th>
+#                 <th>Value</th>
+#                 <th>Rank</th>
+#             </tr>
+#             <tr>
+#                 <td>Record</td>
+#                 <td>{record}</td>
+#                 <td>{int(record_rank)}</td>
+#             </tr>
+#             <tr>
+#                 <td>Twitter Followers</td>
+#                 <td>{twitter_followers_string}</td>
+#                 <td>{int(twitter_rank)}</td>
+#             </tr>
+#             <tr>
+#                 <td>Intrigue Score</td>
+#                 <td>{int(intrigue)}</td>
+#                 <td>{int(intrigue_rank)}</td>
+#             </tr>
+#         </table>
+#         """
+#         
+#     
+#         st.markdown(html_team_info, unsafe_allow_html=True)
+# 
+# 
+#     
+# =============================================================================
