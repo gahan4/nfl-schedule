@@ -6,22 +6,31 @@ This repository contains code, data, and results related to the creation of an o
 1. **Viewership Model:** For each of the 272 games on the schedule, an estimate is made for how many viewers will watch the game if shown in a primetime slot (TNF, SNF, or MNF), based on simple factors like the popularity and strength of each team.
 2. **Schedule Creation:** Each game is assigned to a week/slot pairing in a manner that satisfies scheduling constraints while maximizing primetime viewership.
 
-Technically, the viewership model chosen is a linear regression, while the schedule is created using integer programming.
-
 A (still-in-testing) app that displays the optimal schedule and provides insight into the expected number of viewers for any individual game is available at https://schedule-app.streamlit.app/.
 
 ---
 
 ## How It Works
 ### **Data Collection**
-- Data retrieved to help understand viewership trends and find league-mandated matchups for 2025.
-- Historical NFL viewership data for 2021-22 primetime games was manually added. 
-- As a proxy for popularity, team Twitter follower counts were retrieved from Sports M
+** Using a variety of public sources, historical data was collected to aid in projecting viewership numbers, such as:
+** - Record of each team in each season
+- Number of twitter followers of each team
+- Size of each team's home market
+Additionally, the list of 272 matchups scheduled for the 2025 NFL Regular Season was pulled from the league website.
 
 ### **Modeling Approach**
-- Two-step process for determining number of likely viewers for primetime game. Firstly, "intrigue score" for each team calculated based on their win percentage in previous season and  
-- Integer programming is used to optimize time slot assignments while respecting constraints.
-- 
+Two-step process for determining number of likely viewers for primetime game. 
+- Firstly, an "intrigue score" for each team was derived. This was a single number that represented how intriguing an individual team was to viewers, based on actual viewership trends. The intrigue model credited teams with higher scores when they had more twitter followers and a better record. For interpretability, a score of 100 was considered average and larger numbers being better.
+- Secondly, a model was to predict the number of viewers in any particular primetime game was created. This model considered the intrigue scores of the teams in question and the game's slot (TNF, SNF, or MNF). 
+- Using the intrigue and viewership models, a projected viewership number for all 2025 games was created.
+- Using integer optimization techniques, an optimal schedule that satisfied a host of the league's scheduling constraints was created.
+
+### Where It Falls Short
+This schedule probably isn't ready for the prime time. Here are some areas where it falls short, relative to what would be required for a real NFL schedule:
+- Viewership data was collected from public sources from just 2 seasons of games (2022-23), and only for games in the traditional primetime windows. Real practitioners would hopefully have a much more robust viewership dataset. 
+- Only a small number of variables were tested to create the viewership model, and just 2 were included in the final model. Real practitioners would probably spend more time collecting possible factors for their viewership model and testing different model architectures with their more robust dataset.
+- To solve for the optimal schedule, a free solver (called CBC) was run on a personal laptop. Real practitioners would have access to better solvers and bigger machines.
+- As a result of the limited computational power available, not every constraint that the league might consider was included. For example, this schedule does not account for international games or dates when a team's stadium might be used by other uses (e.g. concerts). Additionally, certain competition constraints, like restrictions on instances of playing a team coming off its bye, were not used in this process.
 
 ---
 
@@ -64,13 +73,3 @@ nfl-schedule/
 - https://www.youtube.com/watch?v=bS1xGetyrh0&ab_channel=NFL, 
 
 ### **Packages Used**
-
-
----
-
-💬 *For questions, feedback, or collaboration opportunities, feel free to reach out via GitHub issues or pull requests!*
-
-
-
-Note also that this project does not utilize Gurobi, Cplex, or any
-other commercial solver.
