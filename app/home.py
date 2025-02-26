@@ -33,6 +33,8 @@ st.markdown(
     }
     th {
         font-size: 18px;
+        background-color: black;
+        color: white;
     }
     .week-highlight {
         font-weight: bold;
