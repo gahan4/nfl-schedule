@@ -187,8 +187,95 @@ def get_jersey_sales_rankings(url):
         return None
 
 
-def get_draft_history():
+def get_draft_history(year):
+    '''
+    Given a year, scrape football reference to find the draft picks in that
+    year's draft. 
+
+    Parameters
+    ----------
+    year : int
+        The year of the draft.
+
+    Returns
+    -------
+    draft_data_df : Pandas DF
+        A data frame with one row per pick from that year's draft, including
+        columns of the number of the pick (overall, not in the round), the picking
+        team (with an abbreviation that should match other sources), 
+        and the player/position selected.
+
+    '''
+    url = "https://www.pro-football-reference.com/years/" + str(year) + "/draft.htm"    
     
+    # Send a GET request to fetch the page content
+    response = requests.get(url)
+    response.raise_for_status()  # Ensure the request was successful
+    
+    # Parse the HTML content using BeautifulSoup
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Locate the first table (which contains the draft picks)
+    table = soup.find("table", {"id": "drafts"})
+    
+    # Extract table rows
+    rows = table.find_all("tr")
+    
+    draft_data = []
+    
+    # Iterate over table rows, skipping the header row
+    for row in rows[1:]:
+        cols = row.find_all("td")  # Get all columns in the row
+        if len(cols) > 3:  # Skip empty rows
+            pick_number = cols[0].text.strip()  # Pick number
+            team = cols[1].text.strip()  # Team name
+            player = cols[2].text.strip()  # Player name
+            position = cols[3].text.strip()  # Position
+            draft_data.append([pick_number, team, player, position])
+    draft_data_df = pd.DataFrame(draft_data, columns=["Pick Number", "Team", "Player", "Position"])
+    draft_data_df['Year'] = year
+    
+    # As a point of concern, there are some different team abbreviations
+    # here and in the main script. Will manually adjust here.
+    # Mapping of Pro Football Reference team abbreviations to preferred format
+    team_abbreviation_map = {
+        "LVR": "LV",
+        "KAN": "KC",
+        "NWE": "NE",
+        "GNB": "GB",
+        "SFO": "SF",
+        "NOR": "NO",
+        "TAM": "TB",
+        "BAL": "BAL",
+        "LAC": "LAC",
+        "LAR": "LA",
+        "MIA": "MIA",
+        "MIN": "MIN",
+        "JAX": "JAX",
+        "DET": "DET",
+        "CIN": "CIN",
+        "DAL": "DAL",
+        "HOU": "HOU",
+        "TEN": "TEN",
+        "BUF": "BUF",
+        "SEA": "SEA",
+        "CHI": "CHI",
+        "IND": "IND",
+        "NYJ": "NYJ",
+        "NYG": "NYG",
+        "ARI": "ARI",
+        "WAS": "WAS",
+        "CAR": "CAR",
+        "PIT": "PIT",
+        "PHI": "PHI",
+        "ATL": "ATL",
+        "CLE": "CLE",
+        "DEN": "DEN"
+    }
+
+    draft_data_df["Team"] = draft_data_df["Team"].replace(team_abbreviation_map)
+
+    return draft_data_df
 
 
 def get_matchups():
