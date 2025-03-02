@@ -16,11 +16,12 @@ Using a variety of public sources, historical data was collected to aid in proje
 - Record of each team in each season
 - Number of twitter followers of each team
 - Size of each team's home market
-Additionally, the list of 272 matchups scheduled for the 2025 NFL Regular Season was pulled from the league website.
+- Jersey sales rank of key players on team
+- Additionally, the list of 272 matchups scheduled for the 2025 NFL Regular Season was pulled from the league website.
 
 ### **Modeling Approach**
 Two-step process for determining number of likely viewers for primetime game. 
-- Firstly, an "intrigue score" for each team was derived. This was a single number that represented how intriguing an individual team was to viewers, based on actual viewership trends. The intrigue model credited teams with higher scores when they had more twitter followers and a better record. For interpretability, a score of 100 was considered average and larger numbers being better.
+- First, an "intrigue score" for each team was derived. This was a single number that represented how intriguing an individual team was to viewers, based on actual viewership trends. The intrigue model credited teams with higher scores when they had more twitter followers and a better record. For interpretability, a score of 100 was considered average and larger numbers being better.
 - Secondly, a model was to predict the number of viewers in any particular primetime game was created. This model considered the intrigue scores of the teams in question and the game's slot (TNF, SNF, or MNF). 
 - Using the intrigue and viewership models, a projected viewership number for all 2025 games was created.
 - Using integer optimization techniques, an optimal schedule that satisfied a host of the league's scheduling constraints was created.
