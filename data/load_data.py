@@ -118,7 +118,77 @@ def add_popularity_metrics(teams):
     
     teams = teams.merge(followers, how='left', on='team_name')
     
+    # Add time zones...couldn't find anything online so will quickly add in manually
+    teams['time_zone'] = 'ET'
+    ct_teams = ['CHI', 'DAL', 'GB', 'HOU', 'KC', 'MIN', 'NO', 'TEN']
+    mt_teams = ['DEN', 'ARI']
+    pt_teams = ['LA', 'LAC', 'LV', 'SEA', 'SF']
+    for t in range(teams.shape[0]):
+        if teams['team_abbr'].iloc[t] in ct_teams:
+            teams.at[t, 'time_zone'] = 'CT'
+        elif teams['team_abbr'].iloc[t] in mt_teams:
+            teams.at[t, 'time_zone'] = 'MT'
+        elif teams['team_abbr'].iloc[t] in pt_teams:
+            teams.at[t, 'time_zone'] = 'PT'
+    
     return(teams)
+
+
+def get_jersey_sales_rankings(url):
+    '''
+    Given a URL of an NFLPA jersey sales top 50 page, scrapes the page
+    and returns a dataframe with the player and team of jersey sales leaders
+    
+    An example of one such url is: https://nflpa.com/partners/posts/top-50-nfl-player-sales-list-march-1-august-31-2024
+    
+    Parameters
+    ----------
+    url : String
+        A URL from the NFLPA with the jersey sales top 50 from a particular time
+        frame.
+
+    Returns
+    -------
+    df : Pandas df
+        Data frame contain.
+
+    '''
+    # Send a GET request to fetch the webpage content
+    response = requests.get(url)
+    
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the HTML content
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # Find the ordered list containing players
+        player_list_section = soup.find("ol", class_="block-list__items")
+    
+        player_list = []
+        
+        # Loop through each player entry
+        if player_list_section:
+            for rank, li in enumerate(player_list_section.find_all("li"), start=1):
+                # Extract player name
+                player_name = li.find("b", class_="block-list__title").get_text(strip=True)
+    
+                # Extract team name (it’s the next text after the player's name)
+                team_name = li.find("b", class_="block-list__title").find_next_sibling(text=True).strip()
+    
+                # Append to list
+                player_list.append({"Rank": rank, "Player Name": player_name, "Player Team": team_name})
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(player_list)   
+        
+        return df
+    else:
+        print(f"Failed to fetch data. Status code: {response.status_code}")
+        return None
+
+
+def get_draft_history():
+    
 
 
 def get_matchups():
