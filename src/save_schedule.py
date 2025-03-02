@@ -8,9 +8,8 @@ Created on Sun Jan 19 10:32:33 2025
 
 import pandas as pd
 import numpy as np
-from create_constraints import flat_to_indices
 
-def save_schedule(teams, solution_vec):
+def save_schedule(teams, matchups_with_schedule):
     teams.to_csv("results/teams.csv",
                  index=False)
     

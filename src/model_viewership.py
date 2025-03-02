@@ -10,17 +10,18 @@ import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
 from sklearn.linear_model import LassoCV
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 import joblib
 from data.load_data import get_teams_and_standings, add_popularity_metrics, \
-    get_jersey_sales_rankings, get_draft_history
+    get_jersey_sales_rankings, get_draft_history, add_jersey_sales_metrics, add_draft_intrigue_metrics, \
+        add_high_value_qb_metrics
 
 
 # Model viewership
-def model_viewership():
+def model_viewership(show_plots=False):
     # viewership data manually saved from Sports Media Watch website
     # https://www.sportsmediawatch.com/nfl-tv-ratings-viewership-2023/
     viewership_data = pd.read_csv("data/Viewership_Data.csv")
@@ -54,116 +55,15 @@ def model_viewership():
     # Going to add in binary column for case where team acquired notable
     # high-value QB after the season, which could be helpful for understanding
     # viewership
-    team_seasons['new_high_value_qb'] = 0
-    # Russell Wilson to DEN
-    team_seasons.loc[(team_seasons["team_abbr"] == "DEN") & 
-                     (team_seasons["join_year"] == 2022), "new_high_value_qb"] = 1
-    # Deshaun Watson to CLE
-    team_seasons.loc[(team_seasons["team_abbr"] == "CLE") & 
-                     (team_seasons["join_year"] == 2022), "new_high_value_qb"] = 1
-    # Aaron Rodgers to NYJ
-    team_seasons.loc[(team_seasons["team_abbr"] == "NYJ") & 
-                     (team_seasons["join_year"] == 2023), "new_high_value_qb"] = 1
-    # Bryce Young, CAR 1st pick in 2023 draft
-    team_seasons.loc[(team_seasons["team_abbr"] == "CAR") & 
-                     (team_seasons["join_year"] == 2023), "new_high_value_qb"] = 1
-    # CJ Stroud, HOU 1st pick (2nd ovr) in 2023 draft
-    team_seasons.loc[(team_seasons["team_abbr"] == "HOU") & 
-                     (team_seasons["join_year"] == 2023), "new_high_value_qb"] = 1
-    # Anthony Richardson, IND 1st pick (4th ovr) in 2023 draft
-    team_seasons.loc[(team_seasons["team_abbr"] == "IND") & 
-                     (team_seasons["join_year"] == 2023), "new_high_value_qb"] = 1
-
+    team_seasons = add_high_value_qb_metrics(team_seasons)
     
     # Add in jersey sales information
-    jersey_url_df = pd.DataFrame({
-    "Season": [2021, 2022, 2024],
-    "URL": [
-        "https://nflpa.com/partners/posts/top-50-nfl-player-sales-list-march-1-2021-february-28-2022",
-        "https://nflpa.com/partners/posts/top-50-nfl-player-sales-list-march-1-2022-february-28-2023",
-        #"https://nflpa.com/partners/posts/top-50-nfl-player-sales-list-march-1-2023-february-28-2024",
-        "https://nflpa.com/partners/posts/top-50-nfl-player-sales-list-march-1-august-31-2024"
-        ]
-    })
-    jersey_sales_df_list = []
-    for _, row in jersey_url_df.iterrows():
-        season = row["Season"]
-        url = row["URL"]
-        
-        # Get rankings data from the URL
-        rankings_df = get_jersey_sales_rankings(url)
-        
-        # Ensure the function returned a valid DataFrame before adding to list
-        if isinstance(rankings_df, pd.DataFrame) and not rankings_df.empty:
-            rankings_df["Season"] = season  # Add the season column
-            jersey_sales_df_list.append(rankings_df)    
-    jersey_sales_df = pd.concat(jersey_sales_df_list, ignore_index=True)
-    jersey_sales_df = jersey_sales_df.rename(columns={"Player Name": "Player", "Player Team": "Team"})
-    # There are some cases with a (*) in the team name column, indicating player
-    # movement between seasons. Identify and address these players and change their team
-    # to the next team they were part of the following season.
-    jersey_sales_df.loc[(jersey_sales_df["Player"] == "Russell Wilson") & 
-                        (jersey_sales_df["Season"] == 2021), "Team"] = "Denver Broncos"
-    jersey_sales_df.loc[(jersey_sales_df["Player"] == "Davante Adams") & 
-                        (jersey_sales_df["Season"] == 2021), "Team"] = "Las Vegas Raiders"
-    jersey_sales_df.loc[(jersey_sales_df["Player"] == "Amari Cooper") & 
-                        (jersey_sales_df["Season"] == 2021), "Team"] = "Cleveland Browns"
-    # Add in flag for players who retired after a particular season
-    jersey_sales_df['RetiredAfterSeason'] = 0
-    jersey_sales_df.loc[(jersey_sales_df["Player"] == "Tom Brady") & 
-                        (jersey_sales_df["Season"] == 2022), "RetiredAfterSeason"] = 1
-    jersey_sales_df.loc[(jersey_sales_df["Player"] == "Rob Gronkowski") & 
-                        (jersey_sales_df["Season"] == 2021), "RetiredAfterSeason"] = 1
-    # Also add a flag for players who definitely won't be on a team next season
-    # but were on a team during the last season with data - i.e. Myles Garrett
-    # or Aaron Rodgers
-    jersey_sales_df['WillChangeTeams'] = 0
-    jersey_sales_df.loc[(jersey_sales_df["Player"] == "Myles Garrett") & 
-                        (jersey_sales_df["Season"] == 2024), "WillChangeTeams"] = 1
-    jersey_sales_df.loc[(jersey_sales_df["Player"] == "Aaron Rodgers") & 
-                        (jersey_sales_df["Season"] == 2024), "WillChangeTeams"] = 1
+    team_seasons = add_jersey_sales_metrics(team_seasons)
     
-    # Apply exponential decay to "score" each player based on how their popularity
-    # might influence fan interest in watching game. By choosing an exponent of -.05,
-    # the top player each year gets 1 intrigue, falling by ~.05 points. 50th
-    # player gets about .09 intrigue.
-    decay_rate = 0.05
-    jersey_sales_df['PlayerIntrigue'] = jersey_sales_df['Rank'].apply(lambda x: np.exp(-decay_rate * (x - 1)))
-    # Apply penalties to remove players who will leave team after the season
-    jersey_sales_df.loc[jersey_sales_df["RetiredAfterSeason"] == 1, "PlayerIntrigue"] = 0  
-    jersey_sales_df.loc[jersey_sales_df["WillChangeTeams"] == 1, "PlayerIntrigue"] = 0  
-    team_jersey_score_df = jersey_sales_df.groupby(["Team","Season"])["PlayerIntrigue"].sum().reset_index()
-    team_jersey_score_df['JoinSeason'] = team_jersey_score_df['Season'] + 1
-    team_jersey_score_df = team_jersey_score_df.rename(columns = {"PlayerIntrigue": "WeightedJerseySales"})
-    # And join those results in
-    team_seasons = team_seasons.merge(team_jersey_score_df[['Team', 'JoinSeason', 'WeightedJerseySales']],
-                                      how="left",
-                                      left_on=['team_name', 'join_year'],
-                                      right_on=['Team', 'JoinSeason']).drop(columns=['Team', 'JoinSeason'])
-    team_seasons['WeightedJerseySales'] = team_seasons['WeightedJerseySales'].fillna(0)
     
     # Add in information related to draft. Expect that teams that pick highly
     # in a particular season's draft might be interesting.
-    draft_history_dfs = []
-    for yr in [2022, 2023, 2025]:
-        draft_history_dfs.append(get_draft_history(yr))
-    draft_history_df = pd.concat(draft_history_dfs, ignore_index=True)
-    # remove rows corresponding to invalid pick numbers
-    draft_history_df = draft_history_df[draft_history_df['PickNum'].str.strip().str.isdigit()]
-    draft_history_df['PickNum'] = draft_history_df['PickNum'].astype(int)
-    # Group by team to get "draft intrigue" score for each team each season. Want
-    # to use a very, very steep decay here because later picks do not mean
-    # much at all towards intrigue. Rate of 1 gives pick 1 a value of 1,
-    # pick 2 a value of .35, and pick 3 a value of .14, pick 4 a value of .05.
-    draft_decay_rate = 1
-    draft_history_df['PickIntrigue'] = draft_history_df['PickNum'].apply(lambda x: np.exp(-draft_decay_rate * (x - 1)))
-    team_draft_intrigue = draft_history_df.groupby(['Team', 'Year'])['PickIntrigue'].sum().reset_index()
-    # One potential area of interest here is that JAX took a non-QB with their first pick in 2022
-    
-    team_seasons = team_seasons.merge(team_draft_intrigue[['Team', 'Year', 'PickIntrigue']],
-                                      how="left",
-                                      left_on=['team_name', 'join_year'],
-                                      right_on=['Team', 'Year']).drop(columns=['Team', 'Year'])
+    team_seasons = add_draft_intrigue_metrics(team_seasons)
     
     # Firstly, will create a second-team-agnostic team viewership data
     # valuation
@@ -235,7 +135,7 @@ def model_viewership():
     ])
     
     # Define full pipeline
-    pipeline = Pipeline([
+    intrigue_model_pipeline = Pipeline([
         ('preprocessing', preprocessor),
         ('model', LassoCV(cv=10))  # Lasso with cross-validation
     ])
@@ -243,78 +143,58 @@ def model_viewership():
     # Fit the pipeline
     X = lasso_df[categorical_features + numeric_features]
     y = lasso_df['Viewers']
-    pipeline.fit(X, y)    
+    intrigue_model_pipeline.fit(X, y)    
     # Print the best alpha found
-    coefficients = pipeline.named_steps['model'].coef_
-    feature_names = pipeline.named_steps['preprocessing'].get_feature_names_out()
+    coefficients = intrigue_model_pipeline.named_steps['model'].coef_
+    feature_names = intrigue_model_pipeline.named_steps['preprocessing'].get_feature_names_out()
     
     lasso_results = pd.DataFrame({'Feature': feature_names, 'Coefficient': coefficients})
 
     # Analyze coefficient standard deviation across folds
-    from sklearn.linear_model import Lasso
-    from sklearn.model_selection import KFold
+    if show_plots:
+        from sklearn.linear_model import Lasso
+        from sklearn.model_selection import KFold
+        
+        # Get feature matrix and target variable
+        X_transformed = intrigue_model_pipeline.named_steps['preprocessing'].fit_transform(X)
+        y_values = y.values  # Convert y to NumPy array for indexing
+        
+        # Define cross-validation strategy
+        kf = KFold(n_splits=10, shuffle=True, random_state=42)
+        
+        coefs_list = []  # Store coefficients for each fold
+        
+        # Perform manual cross-validation
+        for train_idx, test_idx in kf.split(X_transformed):
+            X_train, X_test = X_transformed[train_idx], X_transformed[test_idx]
+            y_train, y_test = y_values[train_idx], y_values[test_idx]
+        
+            # Fit Lasso with the best alpha from LassoCV
+            lasso = Lasso(alpha=intrigue_model_pipeline.named_steps['model'].alpha_)
+            lasso.fit(X_train, y_train)
+        
+            # Store coefficients
+            coefs_list.append(lasso.coef_)
+        
+        # Convert to DataFrame
+        coefs_df = pd.DataFrame(coefs_list, columns=numeric_features + 
+                                list(intrigue_model_pipeline.named_steps['preprocessing'].named_transformers_['cat']
+                                     .named_steps['onehot'].get_feature_names_out()))
+        
+        # Compute standard deviation of coefficients across folds
+        coef_variability = coefs_df.std(axis=0).sort_values(ascending=False)
+        
+        # Display coefficient variability
+        print("Coefficient Standard Deviations Across Folds:")
+        print(coef_variability)
     
-    # Get feature matrix and target variable
-    X_transformed = pipeline.named_steps['preprocessing'].fit_transform(X)
-    y_values = y.values  # Convert y to NumPy array for indexing
-    
-    # Define cross-validation strategy
-    kf = KFold(n_splits=10, shuffle=True, random_state=42)
-    
-    coefs_list = []  # Store coefficients for each fold
-    
-    # Perform manual cross-validation
-    for train_idx, test_idx in kf.split(X_transformed):
-        X_train, X_test = X_transformed[train_idx], X_transformed[test_idx]
-        y_train, y_test = y_values[train_idx], y_values[test_idx]
-    
-        # Fit Lasso with the best alpha from LassoCV
-        lasso = Lasso(alpha=pipeline.named_steps['model'].alpha_)
-        lasso.fit(X_train, y_train)
-    
-        # Store coefficients
-        coefs_list.append(lasso.coef_)
-    
-    # Convert to DataFrame
-    coefs_df = pd.DataFrame(coefs_list, columns=numeric_features + 
-                            list(pipeline.named_steps['preprocessing'].named_transformers_['cat']
-                                 .named_steps['onehot'].get_feature_names_out()))
-    
-    # Compute standard deviation of coefficients across folds
-    coef_variability = coefs_df.std(axis=0).sort_values(ascending=False)
-    
-    # Display coefficient variability
-    print("Coefficient Standard Deviations Across Folds:")
-    print(coef_variability)
-    
-    plt.figure(figsize=(10, 5))
-    coef_variability.plot(kind="bar", color="blue", alpha=0.7)
-    plt.axhline(y=0, color='black', linestyle='--', linewidth=1)
-    plt.xlabel("Feature")
-    plt.ylabel("Standard Deviation of Coefficient")
-    plt.title("Coefficient Stability Across CV Folds")
-    plt.show()
-    
-    
-    # residual anlysis
-    # Get predictions
-    team_games_for_model["predicted_viewers"] = pipeline.predict(team_games_for_model[numeric_features + categorical_features])
-    
-    # Compute residuals (actual - predicted)
-    team_games_for_model["residuals"] = team_games_for_model["Viewers"] - team_games_for_model["predicted_viewers"]
-
-    
-    # To create the intrigue score for a particular team, can remove the coefficients
-    # and confounding terms from the model before predicting
-    
-    team_seasons['intrigue_unscaled'] = intrigue_model.params['WinPct'] * team_seasons['WinPct'] + \
-        intrigue_model.params['twitter_followers'] * team_seasons['twitter_followers']
-    # For ease of understanding, scale so that mean is 100 and standard deviation is 20. Take
-    # care to save the constants for use outside of this process.
-    mean_intrigue_unscaled = team_seasons['intrigue_unscaled'].mean()
-    std_intrigue_unscaled = team_seasons['intrigue_unscaled'].std()
-    team_seasons['intrigue'] = (team_seasons['intrigue_unscaled'] - mean_intrigue_unscaled) / \
-        std_intrigue_unscaled * 20 + 100
+        plt.figure(figsize=(10, 5))
+        coef_variability.plot(kind="bar", color="blue", alpha=0.7)
+        plt.axhline(y=0, color='black', linestyle='--', linewidth=1)
+        plt.xlabel("Feature")
+        plt.ylabel("Standard Deviation of Coefficient")
+        plt.title("Coefficient Stability Across CV Folds")
+        plt.show()
         
     
     # Add a dummy 'Window' column with a fixed value, e.g., 'SNF'
@@ -325,19 +205,19 @@ def model_viewership():
             team_seasons[col] = 0  # Assign a neutral placeholder
 
     # Run through pipeline
-    team_seasons['intrigue_raw'] = pipeline.predict(team_seasons)
+    team_seasons['intrigue_raw'] = intrigue_model_pipeline.predict(team_seasons)
     
     team_seasons = team_seasons.drop(columns=['Window', 'SharedMNFWindow'])
     
     # Standardize intrigue scores to 100-based scale
     mean_intrigue = team_seasons["intrigue_raw"].mean()
     std_intrigue = team_seasons["intrigue_raw"].std()
-    team_seasons["intrigue_scaled"] = 100 + 20 * (team_seasons["intrigue_raw"] - mean_intrigue) / std_intrigue
+    team_seasons["intrigue"] = 100 + 20 * (team_seasons["intrigue_raw"] - mean_intrigue) / std_intrigue
     
     # Display the top teams by intrigue
-    team_seasons[["team_abbr", 'join_year', "intrigue_scaled"]].sort_values(by="intrigue_scaled", ascending=False).head(10)
+    if show_plots:
+        team_seasons[["team_abbr", 'join_year', "intrigue_scaled"]].sort_values(by="intrigue_scaled", ascending=False).head(10)
 
-        
     # Given this information, we now want to predict how many viewers will watch
     # a particular game, given the two teams playing and the window
     viewership_with_team_data = viewership_data.merge(team_seasons.loc[:,['team_abbr', 'join_year','intrigue', 'team_division', 'WinPct']], 
@@ -376,6 +256,9 @@ def model_viewership():
                                                   viewership_with_team_data['WinPct_away']) / 2.0
     viewership_with_team_data['WinPct_multiply'] = (viewership_with_team_data['WinPct_home'] * 
                                                   viewership_with_team_data['WinPct_away']) 
+    viewership_with_team_data['AboveAverage_multiply'] = (viewership_with_team_data['max_above_average'] * 
+                                                  viewership_with_team_data['min_above_average']) 
+
 
     
     # Flag for repeated MNF games
@@ -394,34 +277,35 @@ def model_viewership():
     data_for_model['team_agnostic_viewership_pred'] = team_agnostic_model.predict(data_for_model)
     data_for_model['viewership_over_expected'] = data_for_model['Viewers'] - data_for_model['team_agnostic_viewership_pred']
     
-    # Key visualization - create a plot that shows intrigue of teams and number
-    # of viewers over expectation
-    # Set up the figure and axis
-    plt.figure(figsize=(8, 6))
-    
-    # Create scatter plot
-    sc = plt.scatter(
-        data_for_model["min_intrigue"],
-        data_for_model["max_intrigue"],
-        c=data_for_model["viewership_over_expected"],  # Color based on viewership difference
-        cmap="coolwarm",  # Red for high, blue for low
-        edgecolor="black",
-        alpha=0.75,
-        vmin=-5,
-        vmax=5
-    )
-    
-    # Add color bar
-    cbar = plt.colorbar(sc)
-    cbar.set_label("Viewers Over Expected (Millions)")
-    
-    # Labels and title
-    plt.xlabel("Min Intrigue")
-    plt.ylabel("Max Intrigue")
-    plt.title("Viewership Over Expected by Team Intrigue Scores")
-    
-    # Show the plot
-    plt.show()
+    if show_plots:
+        # Key visualization - create a plot that shows intrigue of teams and number
+        # of viewers over expectation
+        # Set up the figure and axis
+        plt.figure(figsize=(8, 6))
+        
+        # Create scatter plot
+        sc = plt.scatter(
+            data_for_model["min_intrigue"],
+            data_for_model["max_intrigue"],
+            c=data_for_model["viewership_over_expected"],  # Color based on viewership difference
+            cmap="coolwarm",  # Red for high, blue for low
+            edgecolor="black",
+            alpha=0.75,
+            vmin=-5,
+            vmax=5
+        )
+        
+        # Add color bar
+        cbar = plt.colorbar(sc)
+        cbar.set_label("Viewers Over Expected (Millions)")
+        
+        # Labels and title
+        plt.xlabel("Min Intrigue")
+        plt.ylabel("Max Intrigue")
+        plt.title("Viewership Over Expected by Team Intrigue Scores")
+        
+        # Show the plot
+        plt.show()
     
     # A particularly interesting finding is that the identity of the identity of the less-important
     # team doesn't seem to matter much. P-value for max_intrigue is 0 (coeff of .11), but
@@ -444,35 +328,54 @@ def model_viewership():
     # Make a copy to avoid modifying original data
     lasso_game_df = data_for_model.copy()
     
+    # Define custom transformation function
+    def add_intrigue_features(X):
+        X = X.copy()  # Avoid modifying the original data
+
+        # Compute max and min intrigue
+        X["max_intrigue"] = X[["intrigue_home", "intrigue_away"]].max(axis=1)
+        X["min_intrigue"] = X[["intrigue_home", "intrigue_away"]].min(axis=1)
+        X['max_above_average'] = X['max_intrigue'].apply(lambda x: 0 if x < 100 else x - 100)
+        X['min_above_average'] = X['min_intrigue'].apply(lambda x: 0 if x < 100 else x - 100)
+        
+        # Compute the multiplication term
+        X["AboveAverage_multiply"] = X["max_above_average"] * X["min_above_average"]
+        
+        return X
+
+    
     # Define feature sets
+    intrigue_transformer = FunctionTransformer(add_intrigue_features, validate=False)
     categorical_features = ["Window"]
-    numeric_features = ["max_intrigue", "min_intrigue", "SharedMNFWindow", 
-                        'max_above_average', 'max_below_average', 
-                        'two_aavg_teams', 'same_division',
-                        'two_elite_teams', 'min_above_average']
+    numeric_features = ["SharedMNFWindow", 'intrigue_home', 'intrigue_away',
+                        'same_division']
+    created_features = ["max_intrigue", "min_intrigue", "max_above_average", 
+            "min_above_average", "AboveAverage_multiply"]
     
     # Preprocessing pipeline
     preprocessor = ColumnTransformer([
-        ("num", StandardScaler(), numeric_features),  # Scale numeric features
+        ("num", StandardScaler(), numeric_features + created_features),  # Scale numeric features
         ("cat", OneHotEncoder(drop="first", sparse_output=False), categorical_features)  # One-hot encode categorical
     ])
     
     # Define full pipeline
-    game_pipeline = Pipeline([
-        ('preprocessing', preprocessor),
+    game_viewers_model_pipeline = Pipeline([
+        ('feature_engineering', intrigue_transformer),  # Add intrigue-based features
+        ('preprocessing', preprocessor), # Standard scaling & encoding
         ('model', LassoCV(cv=10))  # Lasso with cross-validation
     ])
     
     # Define input (X) and target (y)
-    X = lasso_game_df[numeric_features + categorical_features]
+    X = lasso_game_df[numeric_features + categorical_features + created_features]
     y = lasso_game_df["Viewers"]
     
     # Fit pipeline
-    game_pipeline.fit(X, y)
+    game_viewers_model_pipeline.fit(X, y)
     
     # View coefficients
     coef_df = pd.DataFrame(
-        {"Feature": preprocessor.get_feature_names_out(), "Coefficient": game_pipeline.named_steps["model"].coef_}
+        {"Feature": preprocessor.get_feature_names_out(), 
+         "Coefficient": game_viewers_model_pipeline.named_steps["model"].coef_}
     )
     
     # Bias element of min intrigue: If a team was chosen to play in a primetime
@@ -483,5 +386,5 @@ def model_viewership():
     # min_above_average and min_below average, get undesirable results.
         
     
-    return intrigue_model, game_viewers_model, mean_intrigue_unscaled, std_intrigue_unscaled
+    return intrigue_model_pipeline, game_viewers_model_pipeline, mean_intrigue, std_intrigue
 

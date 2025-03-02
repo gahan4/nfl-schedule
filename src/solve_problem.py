@@ -84,19 +84,28 @@ def get_optimal_solution(A_eq, A_in, b_eq, b_in, f, verbose=True):
     
     solver.SetTimeLimit(1000 * 60 * 30)  # units are milliseconds
 
+    if verbose:
+        solver.EnableOutput()
     status = solver.Solve()
     
+    # Check the solver status
     if status == pywraplp.Solver.OPTIMAL:
-        print("Solution found")
-        opt_sol = [x[i].solution_value() for i in range(len(x))]
-        opt_objective = solver.Objective().Value()
-        print(f"Problem solved in {solver.wall_time():d} milliseconds")
-        print(f"Problem solved in {solver.iterations():d} iterations")
-        print(f"Problem solved in {solver.nodes():d} branch-and-bound nodes")
-
-        return opt_sol, opt_objective
-        
+        print("Optimal solution found.")
+    elif status == pywraplp.Solver.FEASIBLE:
+        print("Feasible solution found, but not necessarily optimal.")
+    elif status == pywraplp.Solver.INFEASIBLE:
+        print("No feasible solution exists.")
+    elif status == pywraplp.Solver.UNBOUNDED:
+        print("The problem is unbounded.")
     else:
-        print("Solution not found")
-        return None
+        print(f"Solver status: {status}")
+        
+    opt_sol = [x[i].solution_value() for i in range(len(x))]
+    opt_objective = solver.Objective().Value()
+    print(f"Problem solved in {solver.wall_time():d} milliseconds")
+    print(f"Problem solved in {solver.iterations():d} iterations")
+    print(f"Problem solved in {solver.nodes():d} branch-and-bound nodes")
+
+    return opt_sol, opt_objective
+        
     

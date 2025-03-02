@@ -17,12 +17,14 @@ from src.create_objective_function import create_objective_function
 from src.solve_problem import get_optimal_solution
 from src.define_problem import define_problem, get_index
 
+    
+
 retrain_model = True
 
 if __name__ == "__main__":
     
     if retrain_model == True:
-        intrigue_model, game_viewers_model, mean_intrigue_unscaled, std_intrigue_unscaled = model_viewership()
+        intrigue_model_pipeline, game_viewers_model_pipeline, mean_intrigue_unscaled, std_intrigue_unscaled = model_viewership()
 
     teams = get_teams_and_standings(2024)
     teams = add_popularity_metrics(teams)
@@ -43,12 +45,12 @@ if __name__ == "__main__":
     matchups = matchups.sort_values(by='game_id')
 
     #A_eq, A_in, b_eq, b_in = create_constraints(teams)
-    f, matchups = create_objective_function(teams, matchups, intrigue_model, game_viewers_model,
+    f, matchups = create_objective_function(teams, matchups, intrigue_model_pipeline, game_viewers_model_pipeline,
                                    mean_intrigue_unscaled, std_intrigue_unscaled)
     print("Completed setting up objective function")
     A_eq, A_in, b_eq, b_in = define_problem(teams, matchups)
     print("Completed setting up constraient matrices")
-    opt_sol, opt_objective = get_optimal_solution(A_eq, A_in, b_eq, b_in, f)
+    opt_sol, opt_objective = get_optimal_solution(A_eq, A_in, b_eq, b_in, f, verbose=False)
             
     schedule_matrix = np.full((18, 32), "", dtype="U4")
     for i in range(NUM_MATCHUPS):

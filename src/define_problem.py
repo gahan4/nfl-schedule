@@ -398,7 +398,7 @@ def define_problem(teams, matchups):
                 A_in[r_in, get_index(i, NUM_WEEKS - 1, k)] = -1
         b_in[r_in] = -1
         
-    # 15. In any 5 week stretch, cannot be home more than 3 games
+    # 15. In any 9 week stretch, cannot be home more than 6 games
     for tm in range(NUM_TEAMS):
         team_home_matchups = matchups.loc[matchups['home_team_id'] == tm, 'game_id'].values
         for j in range(NUM_WEEKS - 4):
@@ -413,6 +413,7 @@ def define_problem(teams, matchups):
             b_in[r_in] = 3
 
     # 16. Cannot play road game against team coming off bye
+    '''
     for tm in range(NUM_TEAMS):
         team_away_matchups = matchups.loc[matchups['away_team_id'] == tm, 'game_id'].values
         for i in team_away_matchups:
@@ -427,7 +428,7 @@ def define_problem(teams, matchups):
                     for k in range(NUM_SLOTS):
                         A_in[r_in, get_index(i_opp, j-1, k)] = -1
                 b_in[r_in] = 0
-
+    '''
     
     return A_eq, A_in, b_eq, b_in
 
