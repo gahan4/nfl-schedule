@@ -9,6 +9,9 @@ Created on Sun Jan 19 10:46:08 2025
 import streamlit as st
 import pandas as pd
 import os
+import joblib
+import matplotlib.pyplot as plt
+from datetime import datetime, date, timedelta
 
 # Comment - yellow background for MNF, green for SNF, purple for TNF
 #     appears that color highlight with white text means home, opposite for road
@@ -19,8 +22,8 @@ st.markdown(
     """
     <style>
     body {
-        zoom: 0.7;
-    }
+            zoom: 0.7;
+       }
     div.stTabs {
         display: flex;
         padding-top: 0px; /* Move tabs higher */
@@ -64,7 +67,7 @@ teams = pd.read_csv("results/teams.csv", index_col=False)
 scheduled_games = pd.read_csv("results/scheduled_games.csv", index_col=False)
 # intrigue percentile to be displayed later
 scheduled_games['Intrigue_Percentile'] = scheduled_games['SNF_Viewers'].rank(pct=True) * 100
-
+intrigue_model_pipeline = joblib.load('results/intrigue_model_pipeline.pkl')
 
 week_names = sorted(scheduled_games['Week'].unique())
 team_names = sorted(teams['team_abbr'].unique())
@@ -116,7 +119,7 @@ def get_intrigue_color(percentile):
         HTML style string.
 
     '''
-    rgb_high = (49, 222, 40) # the color for 100th percentile
+    rgb_high = (17,128,65) # the color for 100th percentile
     rgb_low = (212, 36, 73) # color for 0th percentils
     # Convert percentile to a color scale from red (low) to white (mid) to green (high)
     color_int = [int((255 - rgb_low[x])/50.0 * percentile + rgb_low[x]) if percentile <= 50 else int((rgb_high[x] - 255) / 50 * percentile + 2 * 255 - rgb_high[x]) for x in range(3)]
@@ -136,13 +139,104 @@ def get_intrigue_color(percentile):
     
     return f"<td style='{cell_style}'><b>{percentile:.0f}</b></td>"
 
+# Simple function to format the projected number of viewers
+def format_projected_viewers(row):
+    if row['Slot'] == 'TNF':
+        return round(row['TNF_Viewers'], 1)
+    elif row['Slot'] == 'MNF':
+        return round(row['MNF_Viewers'], 1)
+    elif row['Slot'] == 'SNF':
+        return round(row['SNF_Viewers'], 1)
+    else:
+        return '--'
 
-selected_page = st.tabs(["🏈 League Schedule", "📅 Team Schedule", "📊 Analysis"])
+
+# Place radio button in each column to allow user to select page
+page_options = ["Home", "League Schedule", "Individual Team Analysis", "Analysis"]
+
+# Horizontal page selector
+selected_page = st.radio(
+    "Navigation:", 
+    page_options,
+    horizontal=True
+)
+
+
+# =============================================================================
+# button0, button1, button2, button3 = st.columns(4)
+# with button0:
+#     if st.button(page_options[0]):
+#         st.session_state.selected_page = page_options[0]
+# with button1:
+#     if st.button(page_options[1]):
+#         st.session_state.selected_page = page_options[1]
+# with button2:
+#     if st.button(page_options[2]):
+#         st.session_state.selected_page = page_options[2]
+# with button0:
+#     if st.button(page_options[3]):
+#         st.session_state.selected_page = page_options[3]
+# 
+# =============================================================================
+
+
+# Landing/Home page
+if selected_page == page_options[0]:
+    # Page Title
+    st.title("🏈 NFL Scheduling App")
+
+    # Introduction
+    st.write("""
+    Welcome to the **NFL Scheduling App**! This platform presents a theoretical schedule for the 2025 NFL season. The schedule was created to maximize primetime television viewership across the season,
+    while respecting leaguewide constraints related to competitive balance, travel, etc.
+    """)
+    
+    # Overview of App Sections
+    st.header("App Sections")
+    st.write("""
+    - **League Schedule**: View the schedule grid for the entire league, with all 18 weeks and 32 teams.
+    - **Individual Team Analysis**: View the schedule for a selected team, as well as the variables driving viewership projections for that team.
+    - **Analysis**: Cover a deeper-dive into the math behind schedule creation.
+    """)
+
+    # Intrigue Score Explanation
+    st.header("What is the Intrigue Score?")
+    st.markdown("""
+    The **Intrigue Score** is a metric designed to quantify a team's appeal to viewers. It's calculated using several factors:
+    - **Win Percentage**: Teams with higher recent success tend to attract more viewers.
+    - **Twitter Followers**: A larger social media following indicates greater fan engagement.
+    - **Jersey Sales Leaders**: Popular players often boost a team's attractiveness.
+    - **Market Size**: Teams from larger markets typically draw more attention.
+    """)
+
+    # Game Viewership Model
+    st.header("Game Viewership Model")
+    st.markdown("""
+    To project the number of viewers for each game, we've developed a model that considers:
+    - **Team Intrigue Scores**: Both participating teams' scores influence expected viewership.
+    - **Game Slot**: Prime-time slots like Thursday Night Football (TNF), Sunday Night Football (SNF), and Monday Night Football (MNF) generally attract more viewers.
+    - **Shared MNF Window**: Games sharing the Monday Night slot may experience different viewership dynamics.
+    """)
+
+    # Schedule Optimization
+    st.header("Schedule Optimization")
+    st.markdown("""
+    Creating an optimal NFL schedule is a complex task that balances various constraints:
+    - **Logistical Constraints**: Ensuring teams have appropriate balance between home/road games, travel considerations, etc.
+    - **Maximizing Viewership**: Strategically placing games in slots that maximize audience engagement.
+    """)
+    st.markdown("""
+    To achieve this, mathematical optimization techniques were used. Learn more about NFL scheduling optimization](https://www.gurobi.com/events/creating-the-nfl-schedule-with-mathematical-optimization/).
+    """)
+
+    # Footer
+    st.markdown("---")
+    st.markdown("Explore the app using the navigation buttons above to gain deeper insights into the NFL schedule and its various components.")
+    st.markdown("Code is on Github [here](https://github.com/gahan4/nfl-schedule/).")
 
 # League Schedule page
-with selected_page[0]:
-    # Custom CSS to scale the entire app content to 75% and style tabs
-    
+elif selected_page == page_options[1]:
+
     # Write info to app
     st.write("### NFL Schedule Table")
     
@@ -178,88 +272,182 @@ with selected_page[0]:
     st.markdown("**Colored Background:** Home Game, **White Background:** Away Game")
         
 # Individual team page
-with selected_page[1]:
+elif selected_page == page_options[2]:
     team_choice = st.selectbox("Select a team:", team_names)
-    team_schedule = scheduled_games[(scheduled_games['home_team_abbr'] == team_choice) |
-                                    (scheduled_games['away_team_abbr'] == team_choice)]
-    team_schedule = team_schedule.sort_values(by='Week')
-    team_schedule['Opponent'] = team_schedule.apply(lambda row: f"@ {row['home_team_abbr']}" if team_choice == row['away_team_abbr'] else f"vs {row['away_team_abbr']}", axis=1)
-    team_schedule['Date'] = 'Date'
-    team_schedule['Opponent_Intrigue'] = team_schedule.apply(lambda row: row['intrigue_home'] if team_choice == row['away_team_abbr'] else row['intrigue_away'], axis=1)
 
-    col1, col2 = st.columns([100, 1], gap = "large") 
+    col1, col2 = st.columns([1, 1]) 
     # In the left column, display 
     with col1:  
+        team_schedule = scheduled_games[(scheduled_games['home_team_abbr'] == team_choice) |
+                                        (scheduled_games['away_team_abbr'] == team_choice)]
+        team_schedule = team_schedule.sort_values(by='Week')
+        team_schedule['Opponent'] = team_schedule.apply(lambda row: f"@ {row['home_team_abbr']}" if team_choice == row['away_team_abbr'] else f"vs {row['away_team_abbr']}", axis=1)
+        team_schedule['Opponent_Intrigue'] = team_schedule.apply(lambda row: row['intrigue_home'] if team_choice == row['away_team_abbr'] else row['intrigue_away'], axis=1)
+        team_schedule['formatted_date'] = team_schedule.apply(lambda row: datetime.strptime(row['Date'], "%Y-%m-%d").strftime('%-m/%-d'), axis=1)
         
+        
+        team_schedule['projected_viewers'] = team_schedule.apply(format_projected_viewers, axis=1)
+    
         st.write(f"### Schedule for {team_choice}")
         
         html_schedule = "<table>"
-        html_schedule += "<tr><th>Week</th><th>Date</th><th>Slot</th><th>Opponent</th><th>Opponent Intrigue</th><th>Projected Viewers</th><th style='min-width: 150px;'>Game Intrigue Percentile</th></tr>"
+        html_schedule += "<tr><th style='text-align: center;'>Week</th><th style='text-align: center;'>Date</th><th style='text-align: center;'>Slot</th><th style='text-align: center;'>Opponent</th><th style='text-align: center;'>Opponent Intrigue</th><th style='text-align:center;'>Projected Viewers (M)</th><th style='min-width: 150px; text-align: center;'>Game Intrigue Percentile</th></tr>"
         
         for wk in week_names:
             if wk in team_schedule['Week'].values:
                 row = team_schedule[team_schedule['Week'] == wk].iloc[0]
-                html_schedule += f"<tr><td>{row['Week']}</td><td>{row['Date']}</td><td>{row['Slot']}</td><td>{row['Opponent']}</td><td>{row['Opponent_Intrigue']:.0f}</td><td>{row['SNF_Viewers']:.1f}</td>"
+                html_schedule += f"<tr><td style='text-align: center;'>{row['Week']}</td><td style='text-align: center;'>{row['formatted_date']}</td><td style='text-align: center;'>{row['Slot']}</td><td style='text-align: center;'>{row['Opponent']}</td><td style='text-align: center;'>{row['Opponent_Intrigue']:.0f}</td><td style='text-align: center;'>{row['projected_viewers']}</td>"
                 html_schedule += get_intrigue_color(row['Intrigue_Percentile'])
                 html_schedule += "</tr>"
             else: # bye week
-                html_schedule += f"<tr><td>{wk}</td><td colspan='6' class='bye-week'>BYE WEEK</td></tr>"
+                html_schedule += f"<tr><td style='text-align:center;'>{wk}</td><td colspan='6' class='bye-week'>BYE WEEK</td></tr>"
 
         html_schedule += "</table>"
         st.markdown(html_schedule, unsafe_allow_html=True)
         
+        # Add a key or context explanation below the table
+        st.markdown("""
+        ### Key
+        
+        - **Opponent Intrigue**: Intrigue score of the opposing team, based on factors like  popularity, performance, and market size. 100 is average, higher is better.
+        - **Projected Viewers (M)**: Projected number of viewers for the game (in millions). Estimate is based on historical data, team popularity, and game slot. No projections for traditional Sunday afternoon games.
+        - **Game Intrigue Percentile**: Ranks the game based on projected number of slot-agnostic viewers, relative to all other 2025 matchups. 0th percentile is worst game, 100th percentile is best game.
+        """)
             
     
-# =============================================================================
-#     with col2:
-#         # Display additional team information in an HTML table        
-#         team_info = teams[teams['team_abbr'] == team_choice].iloc[0]
-#         
-#         record = f"{team_info['W']}-{team_info['L']}"
-#         record_rank = teams['WinPct'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
-#         twitter_followers = team_info['twitter_followers'] / 1000000
-#         if twitter_followers <= 1:
-#             twitter_followers = int(twitter_followers * 1000)
-#             twitter_followers_string = f"{twitter_followers} K"
-#         else:
-#             twitter_followers_string = f"{twitter_followers:.1f} M"
-#         twitter_rank = teams['twitter_followers'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
-#         intrigue = team_info['intrigue']
-#         intrigue_rank = teams['intrigue'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
-#         
-#         team_info_df = pd.DataFrame({
-#             "Metric": ["Record", "Record Rank", "Twitter Followers", "Twitter Rank", "Intrigue Score", "Intrigue Rank"],
-#             "Value": [record, record_rank, twitter_followers_string, twitter_rank, intrigue_rank, intrigue_rank]
-#         })        
-#         
-#         html_team_info = f"""
-#         <table>
-#             <tr>
-#                 <th>Category</th>
-#                 <th>Value</th>
-#                 <th>Rank</th>
-#             </tr>
-#             <tr>
-#                 <td>Record</td>
-#                 <td>{record}</td>
-#                 <td>{int(record_rank)}</td>
-#             </tr>
-#             <tr>
-#                 <td>Twitter Followers</td>
-#                 <td>{twitter_followers_string}</td>
-#                 <td>{int(twitter_rank)}</td>
-#             </tr>
-#             <tr>
-#                 <td>Intrigue Score</td>
-#                 <td>{int(intrigue)}</td>
-#                 <td>{int(intrigue_rank)}</td>
-#             </tr>
-#         </table>
-#         """
-#         
-#     
-#         st.markdown(html_team_info, unsafe_allow_html=True)
-# 
-# 
-#     
-# =============================================================================
+    with col2:
+        
+        st.write(f"### Analysis of {team_choice} Viewership Projections")
+
+        # Want to show a bar plot containing the contribution to intrigue
+        # of each feature
+        preprocessing = intrigue_model_pipeline.named_steps['preprocessing']
+        # Get the names of the features handled by StandardScaler (numeric features)
+        num_features = preprocessing.transformers_[0][2]  # StandardScaler is at index 0 in transformers_
+        
+        # Get the names of the features handled by OneHotEncoder (categorical features)
+        cat_features = preprocessing.transformers_[1][1].named_steps['onehot'].get_feature_names_out()
+        # Apply preprocessing (scaling, one-hot encoding) - give SNF values for ease of calculation
+        team_row = teams.loc[teams['team_abbr'] == team_choice]
+        
+        team_row['Window'] = 'SNF'
+        team_row['SharedMNFWindow'] = 0
+        scaled_data = intrigue_model_pipeline.named_steps['preprocessing'].transform(team_row)
+        
+        # Get the model coefficients
+        model_coefficients = intrigue_model_pipeline.named_steps['model'].coef_
+        
+        
+        # Get the feature names after preprocessing (scaled numerical and one-hot encoded categorical)
+        all_feature_names = num_features + list(cat_features)
+        
+        # Calculate feature contributions for each feature
+        contributions = scaled_data.flatten() * model_coefficients.flatten()
+        
+        # Display contributions by feature
+        contribution_df = pd.DataFrame({
+            'Feature': all_feature_names,
+            'Scaled Value': scaled_data.flatten(),
+            'Coefficient': model_coefficients.flatten(),
+            'Contribution': contributions
+        })
+        std_intrigue_unscaled = 1.1693118183117757
+        contribution_df['IntriguePointsAdded'] = contribution_df['Contribution'] * 20 / std_intrigue_unscaled
+        contribution_df = contribution_df[~contribution_df['Feature'].isin(['SharedMNFWindow'] + list(cat_features))]
+        nicer_contribution_names = {
+            'market_pop': 'Market Population',
+            'new_high_value_qb': 'New High-Value QB',
+            'WeightedJerseySales': 'Jersey Sales',
+            'twitter_followers': 'Twitter Followers',
+            'WinPct': 'Win Pct'}
+        contribution_df['Feature'] = contribution_df['Feature'].map(nicer_contribution_names)
+        contribution_df = contribution_df.sort_values('Coefficient', ascending=False)
+
+        #st.dataframe(contribution_df)
+
+        # Optionally, plot the changes in intrigue
+        plt.figure(figsize=(6, 4))
+        plt.barh(contribution_df['Feature'],
+                 contribution_df['IntriguePointsAdded'])
+        plt.xlabel('Change in Intrigue Score')
+        plt.title('Change in Intrigue by Feature')
+        #plt.tight_layout()
+        st.pyplot(plt, use_container_width=True)
+
+        
+        # Display additional team information in an HTML table        
+        team_info = teams[teams['team_abbr'] == team_choice].iloc[0]
+        
+        record = f"{team_info['W']}-{team_info['L']}"
+        win_pct =  f"{team_info['WinPct']:.3f}".lstrip("0")
+        record_rank = teams['WinPct'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        twitter_followers = team_info['twitter_followers'] / 1000000
+        if twitter_followers <= 1:
+            twitter_followers = int(twitter_followers * 1000)
+            twitter_followers_string = f"{twitter_followers} K"
+        else:
+            twitter_followers_string = f"{twitter_followers:.1f} M"
+        twitter_rank = teams['twitter_followers'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        jersey_sales = team_info['WeightedJerseySales']
+        jersey_rank = teams['WeightedJerseySales'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        market_pop = f"{team_info['market_pop'] / 1000000:.1f} M"
+        market_rank = teams['market_pop'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+
+        intrigue = team_info['intrigue']
+        intrigue_rank = teams['intrigue'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        
+        team_info_df = pd.DataFrame({
+            "Metric": ["Win Pct", "Win Pct Rank", "Twitter Followers", "Twitter Rank", "Weighted Jersey Sales", "Weighted Jersey Sales Rank",
+                       "Market Population", "Market Population Rank",
+                       "Intrigue Score", "Intrigue Rank"],
+            "Value": [win_pct, record_rank, twitter_followers_string, twitter_rank, 
+                      jersey_sales, jersey_rank, market_pop, market_rank,
+                      intrigue_rank, intrigue_rank]
+        })        
+        
+        html_team_info = f"""
+        <table>
+            <tr>
+                <th>Category</th>
+                <th>Value</th>
+                <th>Rank</th>
+            </tr>
+            <tr>
+                <td>Win Pct</td>
+                <td>{win_pct}</td>
+                <td>{int(record_rank)}</td>
+            </tr>
+            <tr>
+                <td>Twitter Followers</td>
+                <td>{twitter_followers_string}</td>
+                <td>{int(twitter_rank)}</td>
+            </tr>
+            <tr>
+                <td>Weighted Jersey Sales</td>
+                <td>{jersey_sales:.0f}</td>
+                <td>{int(jersey_rank)}</td>
+            </tr>
+            <tr>
+                <td>Market Population</td>
+                <td>{market_pop}</td>
+                <td>{int(market_rank)}</td>
+            </tr>
+            <tr>
+                <td>Intrigue Score</td>
+                <td>{int(intrigue)}</td>
+                <td>{int(intrigue_rank)}</td>
+            </tr>
+        </table>
+        """
+        
+        # Want to 
+        
+        st.subheader(f"Overview of {team_choice} Metrics")
+        st.markdown(html_team_info, unsafe_allow_html=True)
+        st.markdown(f"""
+        ### Key
+        - **Win Pct** {team_choice}'s win percentage during the 2024 regular season.
+        - **Twitter Followers**: {team}
+        """)
+
+    
