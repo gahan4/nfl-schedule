@@ -4,4 +4,4 @@ numpy
 joblib==1.1
 datetime
 matplotlib
-scikit-learn>=0.24
+scikit-learn
