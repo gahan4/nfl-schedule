@@ -353,7 +353,7 @@ elif selected_page == page_options[2]:
         })
         std_intrigue_unscaled = 1.1693118183117757
         contribution_df['IntriguePointsAdded'] = contribution_df['Contribution'] * 20 / std_intrigue_unscaled
-        contribution_df = contribution_df[~contribution_df['Feature'].isin(['SharedMNFWindow'] + list(cat_features))]
+        contribution_df = contribution_df[~contribution_df['Feature'].isin(['SharedMNFWindow', 'new_high_value_qb'] + list(cat_features))]
         nicer_contribution_names = {
             'market_pop': 'Market Population',
             'new_high_value_qb': 'New High-Value QB',
@@ -362,7 +362,7 @@ elif selected_page == page_options[2]:
             'WinPct': 'Win Pct'}
         contribution_df['Feature'] = contribution_df['Feature'].map(nicer_contribution_names)
         contribution_df = contribution_df.sort_values('Coefficient', ascending=False)
-
+        
         #st.dataframe(contribution_df)
 
         # Optionally, plot the changes in intrigue
@@ -371,6 +371,8 @@ elif selected_page == page_options[2]:
                  contribution_df['IntriguePointsAdded'])
         plt.xlabel('Change in Intrigue Score')
         plt.title('Change in Intrigue by Feature')
+        plt.xlim(-20, 20)
+
         #plt.tight_layout()
         st.pyplot(plt, use_container_width=True)
 
@@ -424,7 +426,7 @@ elif selected_page == page_options[2]:
             </tr>
             <tr>
                 <td>Weighted Jersey Sales</td>
-                <td>{jersey_sales:.0f}</td>
+                <td>{jersey_sales:.1f}</td>
                 <td>{int(jersey_rank)}</td>
             </tr>
             <tr>
@@ -446,8 +448,17 @@ elif selected_page == page_options[2]:
         st.markdown(html_team_info, unsafe_allow_html=True)
         st.markdown(f"""
         ### Key
-        - **Win Pct** {team_choice}'s win percentage during the 2024 regular season.
-        - **Twitter Followers**: {team}
+        - **Win Pct** Team's win percentage during the 2024 regular season.
+        - **Twitter Followers**: Team's number of twitter followers (in Nov 2024)
+        - **Weighted Jersey Sales**: Each player who finished in Top 50 of NFL apparel sales (according to NFLPA) was
+          given a score (1 for highest-seller, down to ~.1 for 50th highest seller), and Weighted Jersey Sales variable
+          takes sum of scores for all players expected to be on team in 2025.
+        - **Market Population**: Number of people who live in the team's home TV market.
+        - **Intrigue Score**: Model's prediction of how "intriguing" the team will be to watch, with 100 being average,
+             and higher values being better. As a frame of reference, an intrigue of 120 would indicate the team is
+             one standard deviation more intriguing than league average, 80 is one standard deviation less intriguing
+             than league average.
+
         """)
 
     
