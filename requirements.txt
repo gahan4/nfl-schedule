@@ -1,7 +1,5 @@
 streamlit
 pandas
 numpy
-joblib==1.1
-datetime
+joblib==1.1.0
 matplotlib
-scikit-learn
