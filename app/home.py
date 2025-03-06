@@ -21,9 +21,6 @@ st.set_page_config(page_title="NFL Schedule App", layout="wide")
 import sys
 import sklearn
 
-# Print the Python and scikit-learn version
-st.markdown(f"Python version: {sys.version}")
-st.markdown(f"scikit-learn version: {sklearn.__version__}")
 
 
 st.markdown(
@@ -64,6 +61,9 @@ st.markdown(
     .stTabs [data-baseweb="tab"] {
         color: white !important;
         font-weight: bold;
+    }
+    .stRadio label {
+          color: white !important;
     }
    </style>
     """,
@@ -210,24 +210,37 @@ if selected_page == page_options[0]:
     # Intrigue Score Explanation
     st.header("How Does It Work?")
     st.markdown("""
-    Creating the schedule breaks down into 4 main phases:
+    Creating the schedule breaks down into 4 main phases: \n
         1. Data Collection - Find information from the web relevant to understanding the state of
             primetime television viewership and the parameters of the 2025 NFL schedule.
         2. Viewership Modeling - Using historical data, determine the variables that lead to individual teams attracting more viewership,
-            and then to games more broadly 
-        3. Scheduling - Usi
+            and then to games more broadly, to project the number of viewers for each game in each of the different primetime windows.
+        3. Scheduling - Applying the viewership model to all 272 matchups in the 2025 NFL season, and using mathematical optimization techniques
+            to find the schedule that respects all mandated scheduling constraints (related to )
         4. App Creation - Making the app that you are looking at right now!
     """)
 
     # Intrigue Score Explanation
     st.header("Methods Used")
     st.markdown("""
-        
+        All code for this project was written in Python.
+        1. Data collection involved web scraping using BeautifulSoup, as well as some manual entry of data from trickier sources.
+        2. The viewership model involved a two-step process. Firstly, a "team intrigue" model was fit to determine the 
+           expected number of viewers who would watch a game given just one individual team. Secondly, a model was fit to predict
+           the number of viewers given the intrigue scores of the teams (among other factors). These models
+           were lasso models fit using 5-fold cross-validation in the scikit-learn package. A data pipeline was created
+           to handle feature engineering and preprocessing. 
+        3. Scheduling was done using integer linear optimization techniques (ILP), achieved with Google's OR-TOOLS package
+            in Python. 
     """)
 
     st.header("Limitations")
     st.markdown("""
-            
+        This schedule probably isn't ready for the prime time. Here are some areas where it falls short, relative to what would be required for a real NFL schedule:
+- Viewership data was collected from public sources from just 2 seasons of games (2022-23), and only for games in the traditional primetime windows. Real practitioners would hopefully have a much more robust viewership dataset. 
+- Only a small number of variables were tested to create the viewership model, and just 2 were included in the final model. Real practitioners would probably spend more time collecting possible factors for their viewership model and testing different model architectures with their more robust dataset.
+- To solve for the optimal schedule, a free solver (called CBC) was run on a personal laptop. Real practitioners would have access to better solvers and bigger machines.
+- As a result of the limited computational power available, not every constraint that the league might consider was included. For example, this schedule does not account for international games or dates when a team's stadium might be used by other uses (e.g. concerts). Additionally, certain competition constraints, like restrictions on instances of playing a team coming off its bye, were not used in this process.
         """)
 
     
@@ -235,7 +248,7 @@ if selected_page == page_options[0]:
     # Intrigue Score Explanation
     st.header("What is the Intrigue Score?")
     st.markdown("""
-    The **Intrigue Score** is a metric designed to quantify a team's appeal to viewers. It's calculated using several factors:
+    The **Intrigue Score** is a metric designed to quantify a team's appeal to viewers. It is the basis for the viewership model. It's calculated using several factors:
     - **Win Percentage**: Teams with higher recent success tend to attract more viewers.
     - **Twitter Followers**: A larger social media following indicates greater fan engagement.
     - **Jersey Sales Leaders**: Popular players often boost a team's attractiveness.
@@ -248,19 +261,18 @@ if selected_page == page_options[0]:
     To project the number of viewers for each game, we've developed a model that considers:
     - **Team Intrigue Scores**: Both participating teams' scores influence expected viewership.
     - **Game Slot**: Prime-time slots like Thursday Night Football (TNF), Sunday Night Football (SNF), and Monday Night Football (MNF) generally attract more viewers.
-    - **Shared MNF Window**: Games sharing the Monday Night slot may experience different viewership dynamics.
     """)
 
     # Schedule Optimization
-    st.header("Schedule Optimization")
-    st.markdown("""
-    Creating an optimal NFL schedule is a complex task that balances various constraints:
-    - **Logistical Constraints**: Ensuring teams have appropriate balance between home/road games, travel considerations, etc.
-    - **Maximizing Viewership**: Strategically placing games in slots that maximize audience engagement.
-    """)
-    st.markdown("""
-    To achieve this, mathematical optimization techniques were used. Learn more about NFL scheduling optimization](https://www.gurobi.com/events/creating-the-nfl-schedule-with-mathematical-optimization/).
-    """)
+    #st.header("Schedule Optimization")
+    #st.markdown("""
+    #Creating an optimal NFL schedule is a complex task that balances various constraints:
+    #- **Logistical Constraints**: Ensuring teams have appropriate balance between home/road games, travel considerations, etc.
+    #- **Maximizing Viewership**: Strategically placing games in slots that maximize audience engagement.
+    #""")
+    #st.markdown("""
+    #To achieve this, mathematical optimization techniques were used. Learn more about NFL scheduling optimization](https://www.gurobi.com/events/creating-the-nfl-schedule-with-mathematical-optimization/).
+    #""")
 
     # Footer
     st.markdown("---")
@@ -409,6 +421,11 @@ elif selected_page == page_options[2]:
         plt.xlim(-20, 20)
 
         #plt.tight_layout()
+        
+        st.markdown('''
+                    The plot below shows how each factor influenced the intrigue score.
+                    ''')
+        
         st.pyplot(plt, use_container_width=True)
 
         
