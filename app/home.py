@@ -22,8 +22,8 @@ import sys
 import sklearn
 
 # Print the Python and scikit-learn version
-st.print(f"Python version: {sys.version}")
-st.print(f"scikit-learn version: {sklearn.__version__}")
+st.markdown(f"Python version: {sys.version}")
+st.markdown(f"scikit-learn version: {sklearn.__version__}")
 
 
 st.markdown(
