@@ -18,6 +18,14 @@ from datetime import datetime, date, timedelta
 
 st.set_page_config(page_title="NFL Schedule App", layout="wide")
 
+import sys
+import sklearn
+
+# Print the Python and scikit-learn version
+st.print(f"Python version: {sys.version}")
+st.print(f"scikit-learn version: {sklearn.__version__}")
+
+
 st.markdown(
     """
     <style>
