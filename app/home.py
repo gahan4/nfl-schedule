@@ -198,6 +198,31 @@ if selected_page == page_options[0]:
     - **Individual Team Analysis**: View the schedule for a selected team, as well as the variables driving viewership projections for that team.
     - **Analysis**: Cover a deeper-dive into the math behind schedule creation.
     """)
+    
+    # Intrigue Score Explanation
+    st.header("How Does It Work?")
+    st.markdown("""
+    Creating the schedule breaks down into 4 main phases:
+        1. Data Collection - Find information from the web relevant to understanding the state of
+            primetime television viewership and the parameters of the 2025 NFL schedule.
+        2. Viewership Modeling - Using historical data, determine the variables that lead to individual teams attracting more viewership,
+            and then to games more broadly 
+        3. Scheduling - Usi
+        4. App Creation - Making the app that you are looking at right now!
+    """)
+
+    # Intrigue Score Explanation
+    st.header("Methods Used")
+    st.markdown("""
+        
+    """)
+
+    st.header("Limitations")
+    st.markdown("""
+            
+        """)
+
+    
 
     # Intrigue Score Explanation
     st.header("What is the Intrigue Score?")
@@ -326,7 +351,8 @@ elif selected_page == page_options[2]:
         num_features = preprocessing.transformers_[0][2]  # StandardScaler is at index 0 in transformers_
         
         # Get the names of the features handled by OneHotEncoder (categorical features)
-        cat_features = preprocessing.transformers_[1][1].named_steps['onehot'].get_feature_names_out()
+        #cat_features = preprocessing.transformers_[1][1].named_steps['onehot'].get_feature_names_out()
+        cat_features = preprocessing.transformers_[1][1].get_feature_names_out(['Window'])
         # Apply preprocessing (scaling, one-hot encoding) - give SNF values for ease of calculation
         team_row = teams.loc[teams['team_abbr'] == team_choice]
         
