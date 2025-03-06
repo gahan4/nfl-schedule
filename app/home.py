@@ -360,7 +360,7 @@ elif selected_page == page_options[2]:
         
         # Get the names of the features handled by OneHotEncoder (categorical features)
         #cat_features = preprocessing.transformers_[1][1].named_steps['onehot'].get_feature_names_out()
-        cat_features = preprocessing.transformers_[1][1].get_feature_names_out(['Window'])
+        cat_features = preprocessing.transformers_[1][1].get_feature_names(['Window'])
         # Apply preprocessing (scaling, one-hot encoding) - give SNF values for ease of calculation
         team_row = teams.loc[teams['team_abbr'] == team_choice]
         
