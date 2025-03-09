@@ -11,17 +11,15 @@ import pandas as pd
 import os
 import joblib
 import matplotlib.pyplot as plt
+import numpy as np
+import sys
+import sklearn
 from datetime import datetime, date, timedelta
 
 # Comment - yellow background for MNF, green for SNF, purple for TNF
 #     appears that color highlight with white text means home, opposite for road
 
 st.set_page_config(page_title="NFL Schedule App", layout="wide")
-
-import sys
-import sklearn
-
-
 
 st.markdown(
     """
@@ -195,7 +193,7 @@ if selected_page == page_options[0]:
 
     # Introduction
     st.write("""
-    Welcome to the **NFL Scheduling App**! This platform presents a theoretical schedule for the 2025 NFL season. The schedule was created to maximize primetime television viewership across the season,
+    Welcome to the **NFL Scheduling App**! This platform presents a prototype schedule for the 2025 NFL season. The schedule was created to maximize primetime television viewership across the season,
     while respecting leaguewide constraints related to competitive balance, travel, etc.
     """)
     
@@ -210,14 +208,12 @@ if selected_page == page_options[0]:
     # Intrigue Score Explanation
     st.header("How Does It Work?")
     st.markdown("""
-    Creating the schedule breaks down into 4 main phases: \n
-        1. Data Collection - Find information from the web relevant to understanding the state of
-            primetime television viewership and the parameters of the 2025 NFL schedule.
-        2. Viewership Modeling - Using historical data, determine the variables that lead to individual teams attracting more viewership,
-            and then to games more broadly, to project the number of viewers for each game in each of the different primetime windows.
-        3. Scheduling - Applying the viewership model to all 272 matchups in the 2025 NFL season, and using mathematical optimization techniques
+    Creating the schedule breaks down into 4 main phases: 
+    - **Data Collection**: Find information from the web relevant to understanding the state of primetime television viewership and the parameters of the 2025 NFL schedule.
+    - **Viewership Modeling**: Using historical data, determine the variables that lead to individual teams attracting more viewership, and then to games more broadly, to project the number of viewers for each game in each of the different primetime windows.
+    - **Scheduling**: Applying the viewership model to all 272 matchups in the 2025 NFL season, and using mathematical optimization techniques
             to find the schedule that respects all mandated scheduling constraints (related to )
-        4. App Creation - Making the app that you are looking at right now!
+    - **App Creation**: Making the app that you are looking at right now!
     """)
 
     # Intrigue Score Explanation
@@ -364,6 +360,17 @@ elif selected_page == page_options[2]:
         
         st.write(f"### Analysis of {team_choice} Viewership Projections")
 
+        st.markdown(f"""
+                    <div style="width: 550px; word-wrap: break-word;">
+                    The projection for the number of viewers of any particular game is primarily
+                 based off the "Intrigue Score" of the two teams involved. The plot below shows how
+                 {team_choice}'s Intrigue Score was compiled. In the plot, the gray bars represent the
+                 spread of how much each factor contributes to Intrigue Score for the 32 teams, and the
+                 red lines show where {team_choice}'s values stand in the distribution. 
+                 <br> <br> 
+                 </div>
+                 """ ,unsafe_allow_html=True)
+
         # Want to show a bar plot containing the contribution to intrigue
         # of each feature
         preprocessing = intrigue_model_pipeline.named_steps['preprocessing']
@@ -376,10 +383,11 @@ elif selected_page == page_options[2]:
         cat_features = ['Window_SNF', 'Window_TNF']
         # Apply preprocessing (scaling, one-hot encoding) - give SNF values for ease of calculation
         team_row = teams.loc[teams['team_abbr'] == team_choice]
+        team_rows = teams.copy()
         
-        team_row['Window'] = 'SNF'
-        team_row['SharedMNFWindow'] = 0
-        scaled_data = intrigue_model_pipeline.named_steps['preprocessing'].transform(team_row)
+        team_rows['Window'] = 'SNF'
+        team_rows['SharedMNFWindow'] = 0
+        scaled_data = intrigue_model_pipeline.named_steps['preprocessing'].transform(team_rows)
         
         # Get the model coefficients
         model_coefficients = intrigue_model_pipeline.named_steps['model'].coef_
@@ -389,18 +397,20 @@ elif selected_page == page_options[2]:
         all_feature_names = num_features + list(cat_features)
         
         # Calculate feature contributions for each feature
-        contributions = scaled_data.flatten() * model_coefficients.flatten()
+        #contributions = scaled_data.flatten() * model_coefficients.flatten()
+        contributions = scaled_data * model_coefficients.T
         
-        # Display contributions by feature
-        contribution_df = pd.DataFrame({
-            'Feature': all_feature_names,
-            'Scaled Value': scaled_data.flatten(),
-            'Coefficient': model_coefficients.flatten(),
-            'Contribution': contributions
-        })
+        contribution_df = pd.DataFrame(contributions, columns=all_feature_names)
+
+        # Reshape the result_df to long format
+        contribution_df = contribution_df.melt(var_name='Feature', value_name='Contribution')
+        
+        # Add the team names
+        contribution_df['team'] = np.tile(team_rows['team_abbr'], len(all_feature_names))
         std_intrigue_unscaled = 1.1693118183117757
-        contribution_df['IntriguePointsAdded'] = contribution_df['Contribution'] * 20 / std_intrigue_unscaled
         contribution_df = contribution_df[~contribution_df['Feature'].isin(['SharedMNFWindow', 'new_high_value_qb'] + list(cat_features))]
+        contribution_df['IntriguePointsAdded'] = contribution_df['Contribution'] * 20 / std_intrigue_unscaled
+
         nicer_contribution_names = {
             'market_pop': 'Market Population',
             'new_high_value_qb': 'New High-Value QB',
@@ -408,25 +418,80 @@ elif selected_page == page_options[2]:
             'twitter_followers': 'Twitter Followers',
             'WinPct': 'Win Pct'}
         contribution_df['Feature'] = contribution_df['Feature'].map(nicer_contribution_names)
-        contribution_df = contribution_df.sort_values('Coefficient', ascending=False)
+        
+        # Prepare data for tornado plot
+        # Calculate min, max, and team contribution
+        feature_stats = contribution_df.groupby('Feature').agg(
+            min_points=('IntriguePointsAdded', 'min'),
+            max_points=('IntriguePointsAdded', 'max'),
+        ).reset_index()
+        
+        # Now add the team contribution by merging with the filtered team dataframe
+        team_contrib = contribution_df.loc[contribution_df['team'] == team_choice].groupby('Feature')['IntriguePointsAdded'].first().reset_index()
+        team_contrib = team_contrib.rename(columns={'IntriguePointsAdded': 'team_contrib'})
+        
+        # Merge the team_contrib with feature_stats
+        feature_stats = feature_stats.merge(team_contrib, on='Feature', how='left')
+        
+        # Calculate the spread for each feature (max - min)
+        feature_stats['spread'] = feature_stats['max_points'] - feature_stats['min_points']
+        
+        # Sort by spread (largest spread at the top)
+        feature_stats = feature_stats.sort_values('spread', ascending=False)
+
+        # Create the tornado plot
+        plt.figure(figsize=(7, 5))
+        
+        # Plot each feature
+        num_feature_stats = feature_stats.shape[0]
+        for i in range(num_feature_stats):
+            y_val_to_plot = num_feature_stats - i - 1
+            # Plot the range of intrigue points (from min to max)
+            row = feature_stats.iloc[i]
+            plt.plot([row['min_points'], row['max_points']], 
+                     [y_val_to_plot, y_val_to_plot], 
+                     color='grey', linewidth=48)
+            
+            # Plot the team contribution within the range (using a red vertical line)
+            plt.plot([row['team_contrib'], row['team_contrib']], 
+                     [y_val_to_plot-0.25, y_val_to_plot+0.25], color='red', 
+                     linewidth=4, label='Team Contribution' if i == 3 else "")
+            
+        
+        # Set labels, title, and adjust layout
+        plt.yticks(list(reversed(range(num_feature_stats))), feature_stats['Feature'])
+        plt.xlabel('Intrigue Points Added')
+        plt.title('Tornado Plot: Intrigue Points by Feature')
+        
+        plt.xlim(-30, 30)
+        
+        # Add legend
+        plt.legend()
+        
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
+        
+        # Show the plot
+        st.pyplot(plt, use_container_width=True)
+        
         
         #st.dataframe(contribution_df)
 
         # Optionally, plot the changes in intrigue
-        plt.figure(figsize=(6, 4))
-        plt.barh(contribution_df['Feature'],
-                 contribution_df['IntriguePointsAdded'])
-        plt.xlabel('Change in Intrigue Score')
-        plt.title('Change in Intrigue by Feature')
-        plt.xlim(-20, 20)
+        # plt.figure(figsize=(6, 4))
+        # plt.barh(contribution_df['Feature'],
+        #          contribution_df['IntriguePointsAdded'])
+        # plt.xlabel('Change in Intrigue Score')
+        # plt.title('Change in Intrigue by Feature')
+        # plt.xlim(-20, 20)
 
-        #plt.tight_layout()
+        # #plt.tight_layout()
         
-        st.markdown('''
-                    The plot below shows how each factor influenced the intrigue score.
-                    ''')
+        # st.markdown('''
+        #             The plot below shows how each factor influenced the intrigue score.
+        #             ''')
         
-        st.pyplot(plt, use_container_width=True)
+        # st.pyplot(plt, use_container_width=True)
 
         
         # Display additional team information in an HTML table        
