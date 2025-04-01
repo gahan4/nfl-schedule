@@ -63,6 +63,9 @@ st.markdown(
     .stRadio label {
           color: white !important;
     }
+    .wrapped-text {
+            max-width: 1200px;  /* Limit the width to 800px (adjust as needed) */
+    }
    </style>
     """,
     unsafe_allow_html=True
@@ -74,6 +77,8 @@ scheduled_games = pd.read_csv("results/scheduled_games.csv", index_col=False)
 # intrigue percentile to be displayed later
 scheduled_games['Intrigue_Percentile'] = scheduled_games['SNF_Viewers'].rank(pct=True) * 100
 intrigue_model_pipeline = joblib.load('results/intrigue_model_pipeline.pkl')
+viewership_model_pipeline = joblib.load('results/viewership_model_pipeline.pkl')
+
 
 week_names = sorted(scheduled_games['Week'].unique())
 team_names = sorted(teams['team_abbr'].unique())
@@ -192,17 +197,24 @@ if selected_page == page_options[0]:
     st.title("🏈 NFL Scheduling App")
 
     # Introduction
-    st.write("""
-    Welcome to the **NFL Scheduling App**! This platform presents a prototype schedule for the 2025 NFL season. The schedule was created to maximize primetime television viewership across the season,
+    st.markdown("""
+    <div style="width: 1600px; word-wrap: break-word;">
+    Welcome to the <b>NFL Scheduling App</b>! This platform presents a prototype schedule for the 2025 NFL season. 
+    The schedule was created to maximize primetime television viewership across the season,
     while respecting leaguewide constraints related to competitive balance, travel, etc.
-    """)
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""\n \n
+                All code for this project is on Github [here](https://github.com/gahan4/nfl-schedule/).""")
+
     
     # Overview of App Sections
     st.header("App Sections")
     st.write("""
     - **League Schedule**: View the schedule grid for the entire league, with all 18 weeks and 32 teams.
     - **Individual Team Analysis**: View the schedule for a selected team, as well as the variables driving viewership projections for that team.
-    - **Analysis**: Cover a deeper-dive into the math behind schedule creation.
+    - **Analysis**: Cover a deeper-dive into the process behind schedule creation.
     """)
     
     # Intrigue Score Explanation
@@ -233,7 +245,7 @@ if selected_page == page_options[0]:
     st.header("Limitations")
     st.markdown("""
         This schedule probably isn't ready for the prime time. Here are some areas where it falls short, relative to what would be required for a real NFL schedule:
-- Viewership data was collected from public sources from just 2 seasons of games (2022-23), and only for games in the traditional primetime windows. Real practitioners would hopefully have a much more robust viewership dataset. 
+- Viewership data was collected from public sources for just 2 seasons of games (2022-23), and only for games in the traditional primetime windows. Real practitioners would hopefully have a much more robust viewership dataset. 
 - Only a small number of variables were tested to create the viewership model, and just 2 were included in the final model. Real practitioners would probably spend more time collecting possible factors for their viewership model and testing different model architectures with their more robust dataset.
 - To solve for the optimal schedule, a free solver (called CBC) was run on a personal laptop. Real practitioners would have access to better solvers and bigger machines.
 - As a result of the limited computational power available, not every constraint that the league might consider was included. For example, this schedule does not account for international games or dates when a team's stadium might be used by other uses (e.g. concerts). Additionally, certain competition constraints, like restrictions on instances of playing a team coming off its bye, were not used in this process.
@@ -242,21 +254,18 @@ if selected_page == page_options[0]:
     
 
     # Intrigue Score Explanation
-    st.header("What is the Intrigue Score?")
+    st.header("Modeling Methodology")
     st.markdown("""
     The **Intrigue Score** is a metric designed to quantify a team's appeal to viewers. It is the basis for the viewership model. It's calculated using several factors:
     - **Win Percentage**: Teams with higher recent success tend to attract more viewers.
     - **Twitter Followers**: A larger social media following indicates greater fan engagement.
     - **Jersey Sales Leaders**: Popular players often boost a team's attractiveness.
     - **Market Size**: Teams from larger markets typically draw more attention.
-    """)
-
-    # Game Viewership Model
-    st.header("Game Viewership Model")
-    st.markdown("""
-    To project the number of viewers for each game, we've developed a model that considers:
+    
+    A second model predicts the number of viewers for each game, based off the following factors:
     - **Team Intrigue Scores**: Both participating teams' scores influence expected viewership.
     - **Game Slot**: Prime-time slots like Thursday Night Football (TNF), Sunday Night Football (SNF), and Monday Night Football (MNF) generally attract more viewers.
+
     """)
 
     # Schedule Optimization
@@ -272,8 +281,7 @@ if selected_page == page_options[0]:
 
     # Footer
     st.markdown("---")
-    st.markdown("Explore the app using the navigation buttons above to gain deeper insights into the NFL schedule and its various components.")
-    st.markdown("Code is on Github [here](https://github.com/gahan4/nfl-schedule/).")
+    st.markdown("Explore the app using the navigation buttons at the top of the page.")
 
 # League Schedule page
 elif selected_page == page_options[1]:
@@ -358,12 +366,96 @@ elif selected_page == page_options[2]:
     
     with col2:
         
+        # Display additional team information in an HTML table        
+        team_info = teams[teams['team_abbr'] == team_choice].iloc[0]
+        
+        record = f"{team_info['W']}-{team_info['L']}"
+        win_pct =  f"{team_info['WinPct']:.3f}".lstrip("0")
+        record_rank = teams['WinPct'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        twitter_followers = team_info['twitter_followers'] / 1000000
+        if twitter_followers <= 1:
+            twitter_followers = int(twitter_followers * 1000)
+            twitter_followers_string = f"{twitter_followers} K"
+        else:
+            twitter_followers_string = f"{twitter_followers:.1f} M"
+        twitter_rank = teams['twitter_followers'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        jersey_sales = team_info['WeightedJerseySales']
+        jersey_rank = teams['WeightedJerseySales'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        market_pop = f"{team_info['market_pop'] / 1000000:.1f} M"
+        market_rank = teams['market_pop'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+
+        intrigue = team_info['intrigue']
+        intrigue_rank = teams['intrigue'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        
+        team_info_df = pd.DataFrame({
+            "Metric": ["Win Pct", "Win Pct Rank", "Twitter Followers", "Twitter Rank", "Weighted Jersey Sales", "Weighted Jersey Sales Rank",
+                       "Market Population", "Market Population Rank",
+                       "Intrigue Score", "Intrigue Rank"],
+            "Value": [win_pct, record_rank, twitter_followers_string, twitter_rank, 
+                      jersey_sales, jersey_rank, market_pop, market_rank,
+                      intrigue_rank, intrigue_rank]
+        })        
+        
+        html_team_info = f"""
+        <table>
+            <tr>
+                <th>Category</th>
+                <th>Value</th>
+                <th>Rank</th>
+            </tr>
+            <tr>
+                <td>Win Pct</td>
+                <td>{win_pct}</td>
+                <td>{int(record_rank)}</td>
+            </tr>
+            <tr>
+                <td>Twitter Followers</td>
+                <td>{twitter_followers_string}</td>
+                <td>{int(twitter_rank)}</td>
+            </tr>
+            <tr>
+                <td>Weighted Jersey Sales</td>
+                <td>{jersey_sales:.1f}</td>
+                <td>{int(jersey_rank)}</td>
+            </tr>
+            <tr>
+                <td>Market Population</td>
+                <td>{market_pop}</td>
+                <td>{int(market_rank)}</td>
+            </tr>
+            <tr>
+                <td>Intrigue Score</td>
+                <td>{int(intrigue)}</td>
+                <td>{int(intrigue_rank)}</td>
+            </tr>
+        </table>
+        """
+        
+        # Want to 
+        
+        st.subheader(f"Overview of {team_choice} Metrics")
+        st.markdown(html_team_info, unsafe_allow_html=True)
+        st.markdown(f"""
+        ### Key
+        - **Win Pct**: Team's win percentage during the 2024 regular season.
+        - **Twitter Followers**: Team's number of twitter followers (in Nov 2024)
+        - **Weighted Jersey Sales**: Each player who finished in Top 50 of NFL apparel sales (according to NFLPA) was
+          given a score (1 for highest-seller, down to ~.1 for 50th highest seller), and Weighted Jersey Sales variable
+          takes sum of scores for all players expected to be on team in 2025.
+        - **Market Population**: Number of people who live in the team's home TV market.
+        - **Intrigue Score**: Model's prediction of how "intriguing" the team will be to watch, with 100 being average,
+             and higher values being better. As a frame of reference, an intrigue of 120 would indicate the team is
+             one standard deviation more intriguing than league average, 80 is one standard deviation less intriguing
+             than league average.
+
+        """)
+        
         st.write(f"### Analysis of {team_choice} Viewership Projections")
 
         st.markdown(f"""
                     <div style="width: 550px; word-wrap: break-word;">
                     The projection for the number of viewers of any particular game is primarily
-                 based off the "Intrigue Score" of the two teams involved. The plot below shows how
+                 based on the "Intrigue Score" of the two teams involved. The plot below shows how
                  {team_choice}'s Intrigue Score was compiled. In the plot, the gray bars represent the
                  spread of how much each factor contributes to Intrigue Score for the 32 teams, and the
                  red lines show where {team_choice}'s values stand in the distribution. 
@@ -493,89 +585,189 @@ elif selected_page == page_options[2]:
         
         # st.pyplot(plt, use_container_width=True)
 
+elif selected_page == page_options[3]:
+    # Page Layout
+    st.title("Analysis")
+    
+    # Introduction Section
+    st.markdown("""
+        ## Introduction       
+        <div class="wrapped-text">
+        The goal of the NFL schedule optimization model is to maximize viewership while respecting certain constraints.  This
+        page reviews more specifics of the process used to create the schedule.
+        </div>
         
-        # Display additional team information in an HTML table        
-        team_info = teams[teams['team_abbr'] == team_choice].iloc[0]
         
-        record = f"{team_info['W']}-{team_info['L']}"
-        win_pct =  f"{team_info['WinPct']:.3f}".lstrip("0")
-        record_rank = teams['WinPct'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
-        twitter_followers = team_info['twitter_followers'] / 1000000
-        if twitter_followers <= 1:
-            twitter_followers = int(twitter_followers * 1000)
-            twitter_followers_string = f"{twitter_followers} K"
-        else:
-            twitter_followers_string = f"{twitter_followers:.1f} M"
-        twitter_rank = teams['twitter_followers'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
-        jersey_sales = team_info['WeightedJerseySales']
-        jersey_rank = teams['WeightedJerseySales'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
-        market_pop = f"{team_info['market_pop'] / 1000000:.1f} M"
-        market_rank = teams['market_pop'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+        <div class="wrapped-text">
+        At a high level, the schedule was created by creating a model to predict
+        the likely number of viewers for any game in any slot and then optimizing
+        to create a schedule that maximized the projected number of primetime viewers while adhering
+        to various league constraints. The modeling step was divided into two parts,
+        with a first-level model predicting the "intrigue" of each individual team as compared
+        to the other teams in the league, and the second-level model predicting the number
+        of viewers for a particular game given the intrigue of the teams involved.
+        </div>
+            """, unsafe_allow_html=True)
+    
+    # Data Sources Section
+    st.markdown("""
+        ## Data Sources
+        <div class="wrapped-text">
+        In order to create the viewership models, we needed training data.
+        The following data sources were used to collect information that was tested in the viewership model. 
+        This information was collected for each team and season. Ideally, information
+        tested in the model was required to have been known at the time of schedule creation, around 6 months prior to the first game of the season. 
+        However, some information, such as market size and number of twitter followers, was taken 
+        from the present day (Feb 2025).
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("""
+            - Viewership data was manually taken from SportsMediaWatch. An example link is [here](https://www.sportsmediawatch.com/nfl-tv-ratings-viewership-2023/). Data was uploaded to this website
+              in the form of a picture, presenting the number of viewers in every game slot. Data was only acquired for the 2022 and 2023 seasons. Note that data was not available for each game that was
+              not independently rated - most relevant, there was no viewership figure for each specific Sunday afternoon game.
+            - General information about teams was acquired via the nfl_data_py package. This included their name, division, city, etc.
+            - The population of each team's home market was scraped from a SportsMediaWatch article ([Link](https://www.sportsmediawatch.com/nba-market-size-nfl-mlb-nhl-nielsen-ratings/)) using the pandas package.
+            - The number of twitter followers for each team was scraped from an article on [SportsMillions](https://www.sportsmillions.com/picks/nfl/which-nfl-team-has-the-most-x-twitter-followers) using the BeautifulSoup package.
+              Data is current as of Nov 2024.
+            - The jersey sales rankings were scraped from the NFLPA website using BeautifulSoup. An example of such a website is [here](https://nflpa.com/partners/posts/top-50-nfl-player-sales-list-march-1-2021-february-28-2022). The NFLPA publishes 
+              a list of the top 50 players in apparel rankings over each league-season. For purposes here, all players were assigned to a specific team (the team they would be on the upcoming season), assigned a value using a decay
+              function that assigned weight of 1 to the top-selling player and decayed by e^{-.05 * (Rank - 1)} for each subsequent player (so the 2nd highest seller would get weight ~.95, the 50th highest around ~.09), and then 
+              the total score for each team was calculated.
+            - A draft intrigue metric was created to attempt to understand the impact of a team having high draft picks on viewership. Draft slot information was scraped from Wikipedia using BeautifulSoup. The idea was to
+              assign a value to each draft slot in a highly decayed manner, overwhelmingly upweighting top picks. However, this variable did not prove predictive in the Team Intrigue model, potentially because
+              not all top picks were used on offensive players (especially QB's) who may have moved viewership.
+            - The required matchups for the 2025 season were scraped from a league press release ([link](https://operations.nfl.com/updates/the-game/2025-opponents-determined/)) using BeautifulSoup.
+    """, unsafe_allow_html=True)
+        
 
-        intrigue = team_info['intrigue']
-        intrigue_rank = teams['intrigue'].rank(ascending=False, method='min')[teams['team_abbr'] == team_choice].values[0]
+    # Model Explanation Section
+    st.markdown("""
+                ## Projecting Viewership
+        We used two primary models in the scheduling process: the **Team Intrigue Model** and the **Viewership Model**.
+    
+        ### Team Intrigue Model
+        The **Team Intrigue Model** was built to predict the intrigue score of a team based on multiple features, including:
+        - Team performance (Win Percentage from previous season)
+        - Number of twitter followers
+        - Population of home market
+        - Popularity of individual players ont eam (measured using jersey sales)
+        - Key team changes such as the introduction of a new quarterback or the draft position (e.g., the team with the 1st overall pick could have more intrigue).
+        - Nuisance variables were added to account for game slot (i.e. SNF gets more viewership than TNF,
+                                                                  games played as part of an MNF doubleheader get fewer viewers than standalone games)
         
-        team_info_df = pd.DataFrame({
-            "Metric": ["Win Pct", "Win Pct Rank", "Twitter Followers", "Twitter Rank", "Weighted Jersey Sales", "Weighted Jersey Sales Rank",
-                       "Market Population", "Market Population Rank",
-                       "Intrigue Score", "Intrigue Rank"],
-            "Value": [win_pct, record_rank, twitter_followers_string, twitter_rank, 
-                      jersey_sales, jersey_rank, market_pop, market_rank,
-                      intrigue_rank, intrigue_rank]
-        })        
+        A Lasso regression model was selected for feature selection because it helps in determining the most influential variables while avoiding overfitting by applying L1 regularization.
         
-        html_team_info = f"""
-        <table>
-            <tr>
-                <th>Category</th>
-                <th>Value</th>
-                <th>Rank</th>
-            </tr>
-            <tr>
-                <td>Win Pct</td>
-                <td>{win_pct}</td>
-                <td>{int(record_rank)}</td>
-            </tr>
-            <tr>
-                <td>Twitter Followers</td>
-                <td>{twitter_followers_string}</td>
-                <td>{int(twitter_rank)}</td>
-            </tr>
-            <tr>
-                <td>Weighted Jersey Sales</td>
-                <td>{jersey_sales:.1f}</td>
-                <td>{int(jersey_rank)}</td>
-            </tr>
-            <tr>
-                <td>Market Population</td>
-                <td>{market_pop}</td>
-                <td>{int(market_rank)}</td>
-            </tr>
-            <tr>
-                <td>Intrigue Score</td>
-                <td>{int(intrigue)}</td>
-                <td>{int(intrigue_rank)}</td>
-            </tr>
-        </table>
-        """
+    
+        ### Viewership Model
+        The **Viewership Model** predicts the viewership of a game based on the intrigue scores of the two teams involved. Factors included in this model:
+        - **Intrigue Scores of Both Teams**: Based on the **Team Intrigue Model**.
+        - **Additional Factors**: Whether the game is a divisional matchup, which could increase interest.
+        - **Challenges**: A major challenge in building this model was the relatively small number of games with low-ranked teams, leading to a risk of overfitting.
+       
+        A Lasso model was also chosen here. In our particular case, we were particularly worried about overfitting because of limitations
+        in the data sample. Notably, we only had 2 seasons worth of data, and only had data available for
+        primetime games. As a result, model structures that featured more complex interactions between the two teams caused non-intuitive
+        behavior. As an example, there have not been many games where two "non-intriguing" teams have played in primetime. As
+        a result, these sorts of games were not in the training data, though there are certainly many games on the schedule
+        between two non-intriguing teams.
+    """)
+    
+    st.image("results/viewership_over_expected.png")
+    
+    # Plot Lasso Coefficients
+    preprocessing = intrigue_model_pipeline.named_steps['preprocessing']
+    # Get the names of the features handled by StandardScaler (numeric features)
+    num_features = preprocessing.transformers_[0][2]  # StandardScaler is at index 0 in transformers_
         
-        # Want to 
+    # Get the names of the features handled by OneHotEncoder (categorical features)
+    cat_features = ['Window_SNF', 'Window_TNF']
+    # Apply preprocessing (scaling, one-hot encoding) - give SNF values for ease of calculation
+                
+    # Get the model coefficients
+    model_coefficients = intrigue_model_pipeline.named_steps['model'].coef_
+          
+    # Get the feature names after preprocessing (scaled numerical and one-hot encoded categorical)
+    all_feature_names = num_features + list(cat_features)
+    
+    plt.figure(figsize=(10, 6))
+    plt.barh(all_feature_names, model_coefficients)
+    plt.xlabel("Coefficient Value (All Variables Scaled)")
+    plt.title("Intrigue Model Feature Coefficients")
+    st.pyplot(plt)
+    
+    # Also plot viewership model coefficients
+    preprocessing = viewership_model_pipeline.named_steps['preprocessing']
+    # Get the names of the features handled by StandardScaler (numeric features)
+    num_features = preprocessing.transformers_[0][2]  # StandardScaler is at index 0 in transformers_
         
-        st.subheader(f"Overview of {team_choice} Metrics")
-        st.markdown(html_team_info, unsafe_allow_html=True)
-        st.markdown(f"""
-        ### Key
-        - **Win Pct** Team's win percentage during the 2024 regular season.
-        - **Twitter Followers**: Team's number of twitter followers (in Nov 2024)
-        - **Weighted Jersey Sales**: Each player who finished in Top 50 of NFL apparel sales (according to NFLPA) was
-          given a score (1 for highest-seller, down to ~.1 for 50th highest seller), and Weighted Jersey Sales variable
-          takes sum of scores for all players expected to be on team in 2025.
-        - **Market Population**: Number of people who live in the team's home TV market.
-        - **Intrigue Score**: Model's prediction of how "intriguing" the team will be to watch, with 100 being average,
-             and higher values being better. As a frame of reference, an intrigue of 120 would indicate the team is
-             one standard deviation more intriguing than league average, 80 is one standard deviation less intriguing
-             than league average.
+    # Get the names of the features handled by OneHotEncoder (categorical features)
+    cat_features = ['Window_SNF', 'Window_TNF']
+    # Apply preprocessing (scaling, one-hot encoding) - give SNF values for ease of calculation
+                
+    # Get the model coefficients
+    model_coefficients = viewership_model_pipeline.named_steps['model'].coef_
+          
+    # Get the feature names after preprocessing (scaled numerical and one-hot encoded categorical)
+    all_feature_names = num_features + list(cat_features)
+    
+    plt.figure(figsize=(10, 6))
+    plt.barh(all_feature_names, model_coefficients)
+    plt.xlabel("Coefficient Value (All Variables Scaled)")
+    plt.title("Intrigue Model Feature Coefficients")
+    st.pyplot(plt)
 
-        """)
-
+    
+    
+    # Scheduling Constraints Section
+    st.markdown("""
+        ## Scheduling Constraints
+        The following constraints were incorporated into the scheduling process:
+        - **Basic Scheduling Considerations**: All 272 games prescribed by the league must be played exactly once. Max 1 game per team per week.
+        - **Number of Primetime Games**: Exactly one game must be scheduled in each of the 3 primetime windows (TNF, SNF, and MNF) in each week,
+           with the exception of Week 18 (no primetime games) and Thanksgiving (3 primetime games).
+        - **Bye Week**: Each team must have one bye week between Weeks 5-14.
+        - **Stadium Conflicts**: The NY and LA teams cannot both be home during the same week.
+        - **Week 18**: Last game of season must be against divisional opponent.
+        - **Spacing**: Two teams cannot play 2 games within 2 weeks of each other (i.e. if they play Week X, cannot play again until Week X+3)
+        - **Home/Road Balance**: Teams must have at least 1 home game every 3 weeks. Cannot play 4 consecutive home games.
+        - **Beginning/End**: Each team must have 1 home game during Weeks 1-2 and 1 home game during Weeks 17-18.
+        - **Restricted Dates**: Dallas and Detroit must be home on Thanksgiving.
+        - **Thursday Restrictions**
+            - Max 2 TNF games per team, with a max of 1 of those at home.
+            - If play road Thursday game, then need to be home previous week
+            - All teams playing home Thursday games must play within division
+              or same division other conference (i.e. AFC East vs NFC East)
+              during previous week
+            - Teams that play Thursday after Thanksgiving must have played
+                on Thanksgiving
+            - Teams that play on Thursday can't have played previous SNF or MNF
+            - Cannot travel more than two time zones for Thursday game
+        - **Primetime Restrictions** 
+            - Minimum quality of primetime game required (mean intrigue of 88 for TNF, 93 for MNF, 100 for SNF).
+            - Max 5 total primetime games per team
+    """)
+    
+        
+    # Problem Setup in Solver Section
+    st.markdown("""
+        ## Solver Setup and Problem Formulation
+        The scheduling problem was formulated as an **integer programming** problem using Google's OR-Tools. A binary variable \(x_{ijk}\) was introduced to represent whether **matchup i** occurs in **week j** at **slot k**.
+    
+        The problem is set up as follows:
+        - **Variables**: \(x_{ijk} \in \{0, 1\}\) for each matchup i, week j, and slot k. With 272 matchups, 18 weeks,
+            and 4 slots per week, this created 19,584 binary variables.
+        - **Objective Function**: Created by projecting the number of viewers for each matchup in each slot. Assume
+           that all games not in a primetime slot would have 0 viewers.
+        
+        In total, the final model had:
+        - **588 equality constraints**
+        - **5748 inequality constraints**
+        
+        The final problem was solved using a CBC solver through Google's OR-Tools, which efficiently handles large constraint sets.
+        The solver was allowed to run for 2 hours on a personal laptop.
+ 
+    """)
+    
+   
+    
     
