@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import sklearn
+import io
 from datetime import datetime, date, timedelta
 
 # Comment - yellow background for MNF, green for SNF, purple for TNF
@@ -77,7 +78,7 @@ scheduled_games = pd.read_csv("results/scheduled_games.csv", index_col=False)
 # intrigue percentile to be displayed later
 scheduled_games['Intrigue_Percentile'] = scheduled_games['SNF_Viewers'].rank(pct=True) * 100
 intrigue_model_pipeline = joblib.load('results/intrigue_model_pipeline.pkl')
-viewership_model_pipeline = joblib.load('results/viewership_model_pipeline.pkl')
+#viewership_model_pipeline = joblib.load('results/viewership_model_pipeline.pkl')
 
 
 week_names = sorted(scheduled_games['Week'].unique())
@@ -563,7 +564,6 @@ elif selected_page == page_options[2]:
         # Adjust layout to prevent overlap
         plt.tight_layout()
         
-        # Show the plot
         st.pyplot(plt, use_container_width=True)
         
         
@@ -638,6 +638,8 @@ elif selected_page == page_options[3]:
               not all top picks were used on offensive players (especially QB's) who may have moved viewership.
             - The required matchups for the 2025 season were scraped from a league press release ([link](https://operations.nfl.com/updates/the-game/2025-opponents-determined/)) using BeautifulSoup.
     """, unsafe_allow_html=True)
+    
+
         
 
     # Model Explanation Section
@@ -655,26 +657,19 @@ elif selected_page == page_options[3]:
         - Nuisance variables were added to account for game slot (i.e. SNF gets more viewership than TNF,
                                                                   games played as part of an MNF doubleheader get fewer viewers than standalone games)
         
-        A Lasso regression model was selected for feature selection because it helps in determining the most influential variables while avoiding overfitting by applying L1 regularization.
-        
-    
-        ### Viewership Model
-        The **Viewership Model** predicts the viewership of a game based on the intrigue scores of the two teams involved. Factors included in this model:
-        - **Intrigue Scores of Both Teams**: Based on the **Team Intrigue Model**.
-        - **Additional Factors**: Whether the game is a divisional matchup, which could increase interest.
-        - **Challenges**: A major challenge in building this model was the relatively small number of games with low-ranked teams, leading to a risk of overfitting.
-       
-        A Lasso model was also chosen here. In our particular case, we were particularly worried about overfitting because of limitations
-        in the data sample. Notably, we only had 2 seasons worth of data, and only had data available for
-        primetime games. As a result, model structures that featured more complex interactions between the two teams caused non-intuitive
-        behavior. As an example, there have not been many games where two "non-intriguing" teams have played in primetime. As
-        a result, these sorts of games were not in the training data, though there are certainly many games on the schedule
-        between two non-intriguing teams.
     """)
     
-    st.image("results/viewership_over_expected.png")
-    
-    # Plot Lasso Coefficients
+    st.markdown("""
+    <div class="wrapped-text">
+    A Lasso regression model was selected for feature selection because it helps in determining the most influential variables while avoiding overfitting by applying L1 regularization.
+    The bar plot below shows the coefficients that the model chose - note that
+    all variables were normally scaled, and the response variable is "number of viewers". Aside from the nuisance variables,
+    we see that the most important features are the previous season's win percentage, twitter followers, and weighted jersey sales,
+    with market population and the presence of a new high-value QB providing some value.
+    </div>
+    """, unsafe_allow_html=True)
+       
+       # Plot Lasso Coefficients
     preprocessing = intrigue_model_pipeline.named_steps['preprocessing']
     # Get the names of the features handled by StandardScaler (numeric features)
     num_features = preprocessing.transformers_[0][2]  # StandardScaler is at index 0 in transformers_
@@ -688,33 +683,92 @@ elif selected_page == page_options[3]:
           
     # Get the feature names after preprocessing (scaled numerical and one-hot encoded categorical)
     all_feature_names = num_features + list(cat_features)
+    coef_df = pd.DataFrame({'Feature': all_feature_names,
+                 'Coef': model_coefficients})
     
+    feature_name_map = {
+        'market_pop': 'Market Population',
+        'WeightedJerseySales': 'Weighted Jersey Sales',
+        'twitter_followers': 'Twitter Followers',
+        'WinPct': 'Prev Season Win Pct',
+        'new_high_value_qb': 'New High Value QB',
+        'SharedMNFWindow': 'Shared MNF Window',
+        'Window_TNF': 'TNF Slot',
+        'Window_SNF': 'SNF Slot'
+    }
+    coef_df['BetterFeatureName'] = coef_df['Feature'].map(feature_name_map)
+    coef_df = coef_df.sort_values(by = 'Coef', ascending=True, key = abs)
+        
     plt.figure(figsize=(10, 6))
-    plt.barh(all_feature_names, model_coefficients)
+    plt.barh(coef_df['BetterFeatureName'], coef_df['Coef'])
     plt.xlabel("Coefficient Value (All Variables Scaled)")
     plt.title("Intrigue Model Feature Coefficients")
-    st.pyplot(plt)
+    
+    # Save to BytesIO buffer in order to help with sizing
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches='tight', dpi=200)
+    buf.seek(0)
+    
+    # Display with reduced visual width
+    st.image(buf, width=1000)  # Shrink display width
+
+       
+    st.markdown("""
+    ### Viewership Model
+    The **Viewership Model** predicts the viewership of a game based on the intrigue scores of the two teams involved. Factors included in this model:
+    - **Intrigue Scores of Both Teams**: Based on the **Team Intrigue Model**.
+    - **Additional Factors**: Whether the game is a divisional matchup, which could increase interest.
+    - **Challenges**: A major challenge in building this model was the relatively small number of games with low-ranked teams, leading to a risk of overfitting.
+   """)
+
+       
+    st.markdown("""
+        <div class="wrapped-text">
+        A Lasso model was also chosen here. In our particular case, we are particularly worried about overfitting because of limitations
+        in the data sample. Notably, we only had 2 seasons worth of data, and only had data available for
+        primetime games. As a result, model structures that featured more complex interactions between the two teams caused non-intuitive
+        behavior. As an example, there have not been many games where two "non-intriguing" teams have played in primetime. As
+        a result, these sorts of games were not in the training data, though there are certainly many games on the schedule
+        between two non-intriguing teams. But, many complex model structures were unable to learn that these games are likely
+        to be very unpopular, so overweighted on the few such primetime games (which were probably put in primetime because
+                                                                               of a factor not considered in the intrigue model),
+        causing non-desired behavior. 
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="wrapped-text">
+        As an example, the plot below shows the number of "viewers over expected" based on the intrigue score of the two
+        teams. Here, expectation is determined simply by meta-factors such as the game's slot. 
+        </div>
+    """, unsafe_allow_html=True)
+
+    
+    st.image("results/viewership_over_expected.png")
+    
     
     # Also plot viewership model coefficients
-    preprocessing = viewership_model_pipeline.named_steps['preprocessing']
+    
+    #preprocessing = viewership_model_pipeline.named_steps['preprocessing']
     # Get the names of the features handled by StandardScaler (numeric features)
-    num_features = preprocessing.transformers_[0][2]  # StandardScaler is at index 0 in transformers_
+    #num_features = preprocessing.transformers_[0][2]  # StandardScaler is at index 0 in transformers_
         
     # Get the names of the features handled by OneHotEncoder (categorical features)
-    cat_features = ['Window_SNF', 'Window_TNF']
+    #cat_features = ['Window_SNF', 'Window_TNF']
     # Apply preprocessing (scaling, one-hot encoding) - give SNF values for ease of calculation
                 
     # Get the model coefficients
-    model_coefficients = viewership_model_pipeline.named_steps['model'].coef_
+    # model_coefficients = viewership_model_pipeline.named_steps['model'].coef_
           
-    # Get the feature names after preprocessing (scaled numerical and one-hot encoded categorical)
-    all_feature_names = num_features + list(cat_features)
+    # # Get the feature names after preprocessing (scaled numerical and one-hot encoded categorical)
+    # all_feature_names = num_features + list(cat_features)
     
-    plt.figure(figsize=(10, 6))
-    plt.barh(all_feature_names, model_coefficients)
-    plt.xlabel("Coefficient Value (All Variables Scaled)")
-    plt.title("Intrigue Model Feature Coefficients")
-    st.pyplot(plt)
+    # plt.figure(figsize=(10, 6))
+    # plt.barh(all_feature_names, model_coefficients)
+    # plt.xlabel("Coefficient Value (All Variables Scaled)")
+    # plt.title("Intrigue Model Feature Coefficients")
+    # st.pyplot(plt)
+    
 
     
     
@@ -754,7 +808,7 @@ elif selected_page == page_options[3]:
         The scheduling problem was formulated as an **integer programming** problem using Google's OR-Tools. A binary variable \(x_{ijk}\) was introduced to represent whether **matchup i** occurs in **week j** at **slot k**.
     
         The problem is set up as follows:
-        - **Variables**: \(x_{ijk} \in \{0, 1\}\) for each matchup i, week j, and slot k. With 272 matchups, 18 weeks,
+        - **Variables**: Binary variable $x_{ijk}$ was defined for each matchup i, week j, and slot k. With 272 matchups, 18 weeks,
             and 4 slots per week, this created 19,584 binary variables.
         - **Objective Function**: Created by projecting the number of viewers for each matchup in each slot. Assume
            that all games not in a primetime slot would have 0 viewers.
