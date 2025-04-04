@@ -16,6 +16,8 @@ import sys
 import sklearn
 import io
 from datetime import datetime, date, timedelta
+from matplotlib.colors import LinearSegmentedColormap
+
 
 # Comment - yellow background for MNF, green for SNF, purple for TNF
 #     appears that color highlight with white text means home, opposite for road
@@ -63,6 +65,9 @@ st.markdown(
     }
     .stRadio label {
           color: white !important;
+    }
+    .stText, .stRadio label, .stButton, .stMarkdown, .stSelectbox label, .stCheckbox label {
+            color: white !important;
     }
     .wrapped-text {
             max-width: 1200px;  /* Limit the width to 800px (adjust as needed) */
@@ -710,9 +715,66 @@ elif selected_page == page_options[3]:
     buf.seek(0)
     
     # Display with reduced visual width
-    st.image(buf, width=1000)  # Shrink display width
+    st.image(buf, width=800)  # Shrink display width
+    
+    st.markdown("""    <div class="wrapped-text">
+                To go from the results of the model to a more understandable Intrigue Score,
+                we simply scaled the results so that the mean intrigue score would be 100 and the standard deviation would be 20.
+                To do this, we found the mean and standard deviation of projected SNF Viewers for 2022-23 teams (using the model above),
+                then applying that same mean and standard deviation to 2025 teams. 
+                </div>
+                """, unsafe_allow_html=True)
 
-       
+    
+    st.markdown("""    <div class="wrapped-text">
+                The table below shows all of the factors that contributed to the creation of team's
+                intrigue scores for the 2025 season, as well as the scores from each team. The table
+                is sortable by each column.
+                </div>
+                """, unsafe_allow_html=True)
+
+    better_colnames_dict = {
+        'team_abbr': 'Team',
+        'WinPct': '2024 Win Pct',
+        'market_pop': 'Market Population',
+        'twitter_followers': 'Twitter Followers',
+        'new_high_value_qb': 'New High Value QB',
+        'WeightedJerseySales': 'Weighted Jersey Sales',
+        'intrigue': 'Intrigue Score'
+    }
+    
+    # Create custom colormap to highlight the intrigue scores. Red is lowest,
+    # white is intermediate, green is highest.
+    # Define RGB colors (normalized to 0–1 scale)
+    rgb_low = (212/255, 36/255, 73/255)     # Red
+    rgb_mid = (1, 1, 1)                     # White
+    rgb_high = (17/255, 128/255, 65/255)    # Green
+
+    custom_cmap = LinearSegmentedColormap.from_list("custom_red_white_green", [rgb_low, rgb_mid, rgb_high])
+    
+    # Custom formatting function to drop leading 0, useful for displaying Win Pct
+    def format_decimal_no_leading_zero(x):
+        return f"{x:.3f}".lstrip("0") if 0 < x < 1 else f"{x:.3f}"
+
+
+    teams_df_to_display = teams[['team_abbr', 'WinPct',
+                        'market_pop', 'twitter_followers',
+                        'new_high_value_qb', 'WeightedJerseySales',
+                        'intrigue']].rename(columns=better_colnames_dict).style \
+    .format({
+        '2024 Win Pct': format_decimal_no_leading_zero,  
+        'Weighted Jersey Sales': '{:.3f}',
+        'Intrigue Score': '{:.0f}',
+        'Market Population': '{:,.0f}',
+        'Twitter Followers': '{:,.0f}'
+    }) \
+    .background_gradient(subset=['Intrigue Score'], cmap=custom_cmap) \
+    .set_properties(**{'text-align': 'center'}) \
+    .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+
+
+    st.dataframe(teams_df_to_display, height = 500)   
+
     st.markdown("""
     ### Viewership Model
     The **Viewership Model** predicts the viewership of a game based on the intrigue scores of the two teams involved. Factors included in this model:
