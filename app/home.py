@@ -209,9 +209,10 @@ if selected_page == page_options[0]:
     The schedule was created to maximize primetime television viewership across the season,
     while respecting leaguewide constraints related to competitive balance, travel, etc.
     </div>
+    <br>
     """, unsafe_allow_html=True)
     
-    st.markdown("""\n \n
+    st.markdown("""
                 All code for this project is on Github [here](https://github.com/gahan4/nfl-schedule/).""")
 
     
@@ -270,7 +271,7 @@ if selected_page == page_options[0]:
     
     A second model predicts the number of viewers for each game, based off the following factors:
     - **Team Intrigue Scores**: Both participating teams' scores influence expected viewership.
-    - **Game Slot**: Prime-time slots like Thursday Night Football (TNF), Sunday Night Football (SNF), and Monday Night Football (MNF) generally attract more viewers.
+    - **Game Slot**: The different primetime slots - Thursday Night Football (TNF), Sunday Night Football (SNF), and Monday Night Football (MNF) - tend to attract different numbers of viewers.
 
     """)
 
@@ -601,8 +602,9 @@ elif selected_page == page_options[3]:
         The goal of the NFL schedule optimization model is to maximize viewership while respecting certain constraints.  This
         page reviews more specifics of the process used to create the schedule.
         </div>
-        
-        
+        <br>
+    """, unsafe_allow_html=True)
+    st.markdown("""
         <div class="wrapped-text">
         At a high level, the schedule was created by creating a model to predict
         the likely number of viewers for any game in any slot and then optimizing
@@ -670,8 +672,10 @@ elif selected_page == page_options[3]:
     The bar plot below shows the coefficients that the model chose - note that
     all variables were normally scaled, and the response variable is "number of viewers". Aside from the nuisance variables,
     we see that the most important features are the previous season's win percentage, twitter followers, and weighted jersey sales,
-    with market population and the presence of a new high-value QB providing some value.
+    with market population and the presence of a new high-value QB providing some value. However, note that when creating
+    the schedule in April, we don't know for sure which high-value QBs might change teams.
     </div>
+    <br>
     """, unsafe_allow_html=True)
        
        # Plot Lasso Coefficients
@@ -717,7 +721,7 @@ elif selected_page == page_options[3]:
     # Display with reduced visual width
     st.image(buf, width=800)  # Shrink display width
     
-    st.markdown("""    <div class="wrapped-text">
+    st.markdown(""" <br>   <div class="wrapped-text">
                 To go from the results of the model to a more understandable Intrigue Score,
                 we simply scaled the results so that the mean intrigue score would be 100 and the standard deviation would be 20.
                 To do this, we found the mean and standard deviation of projected SNF Viewers for 2022-23 teams (using the model above),
@@ -760,8 +764,9 @@ elif selected_page == page_options[3]:
     teams_df_to_display = teams[['team_abbr', 'WinPct',
                         'market_pop', 'twitter_followers',
                         'new_high_value_qb', 'WeightedJerseySales',
-                        'intrigue']].rename(columns=better_colnames_dict).style \
-    .format({
+                        'intrigue']].rename(columns=better_colnames_dict) \
+    .set_index('Team') 
+    teams_df_to_display = teams_df_to_display.style.format({
         '2024 Win Pct': format_decimal_no_leading_zero,  
         'Weighted Jersey Sales': '{:.3f}',
         'Intrigue Score': '{:.0f}',
@@ -773,7 +778,7 @@ elif selected_page == page_options[3]:
     .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
 
 
-    st.dataframe(teams_df_to_display, height = 500)   
+    st.dataframe(teams_df_to_display, height = 500, width = 1000)   
 
     st.markdown("""
     ### Viewership Model
