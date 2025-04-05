@@ -539,39 +539,35 @@ elif selected_page == page_options[2]:
         # Sort by spread (largest spread at the top)
         feature_stats = feature_stats.sort_values('spread', ascending=False)
 
-        # Create the tornado plot
-        plt.figure(figsize=(7, 5))
-        
-        # Plot each feature
+        fig, ax = plt.subplots(figsize=(8, 6))  # Try increasing slightly
+
         num_feature_stats = feature_stats.shape[0]
         for i in range(num_feature_stats):
             y_val_to_plot = num_feature_stats - i - 1
-            # Plot the range of intrigue points (from min to max)
             row = feature_stats.iloc[i]
-            plt.plot([row['min_points'], row['max_points']], 
-                     [y_val_to_plot, y_val_to_plot], 
-                     color='grey', linewidth=48)
-            
-            # Plot the team contribution within the range (using a red vertical line)
-            plt.plot([row['team_contrib'], row['team_contrib']], 
-                     [y_val_to_plot-0.25, y_val_to_plot+0.25], color='red', 
-                     linewidth=4, label='Team Contribution' if i == 3 else "")
-            
         
-        # Set labels, title, and adjust layout
-        plt.yticks(list(reversed(range(num_feature_stats))), feature_stats['Feature'])
-        plt.xlabel('Intrigue Points Added')
-        plt.title('Tornado Plot: Intrigue Points by Feature')
+            # Draw wide gray bar (min to max)
+            ax.plot([row['min_points'], row['max_points']], 
+                    [y_val_to_plot, y_val_to_plot], 
+                    color='grey', linewidth=48)
         
-        plt.xlim(-30, 30)
+            # Draw red line for this team's contribution
+            ax.plot([row['team_contrib'], row['team_contrib']], 
+                    [y_val_to_plot - 0.25, y_val_to_plot + 0.25], 
+                    color='red', linewidth=4,
+                    label='Team Contribution' if i == 3 else "")
         
-        # Add legend
-        plt.legend()
+        # Ticks and labels
+        ax.set_yticks(list(reversed(range(num_feature_stats))))
+        ax.set_yticklabels(feature_stats['Feature'])
+        ax.set_xlabel('Intrigue Points Added')
+        ax.set_title('Tornado Plot: Intrigue Points by Feature')
+        ax.set_xlim(-30, 30)
+        ax.legend()
         
-        # Adjust layout to prevent overlap
-        plt.tight_layout()
-        
-        st.pyplot(plt, use_container_width=True)
+        # Streamlit display
+        st.pyplot(fig, use_container_width=True)
+
         
         
         #st.dataframe(contribution_df)
