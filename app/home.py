@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jan 19 10:46:08 2025
+App to describe NFL Scheduling process.
+
+Deployed on Streamlit Cloud at https://schedule-app.streamlit.app/
 
 @author: neil
 """
@@ -22,8 +24,12 @@ from matplotlib.colors import LinearSegmentedColormap
 # Comment - yellow background for MNF, green for SNF, purple for TNF
 #     appears that color highlight with white text means home, opposite for road
 
+# Configure page
 st.set_page_config(page_title="NFL Schedule App", layout="wide")
 
+# Create CSS stylings that will be used throughout. Notably care
+# to ensure consistent page width, zoom, and header colors across
+# deployment locations
 st.markdown(
     """
     <style>
@@ -77,13 +83,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
+# Read in relevant data
 teams = pd.read_csv("results/teams.csv", index_col=False)
 scheduled_games = pd.read_csv("results/scheduled_games.csv", index_col=False)
 # intrigue percentile to be displayed later
 scheduled_games['Intrigue_Percentile'] = scheduled_games['SNF_Viewers'].rank(pct=True) * 100
 intrigue_model_pipeline = joblib.load('results/intrigue_model_pipeline.pkl')
-#viewership_model_pipeline = joblib.load('results/viewership_model_pipeline.pkl')
 
 
 week_names = sorted(scheduled_games['Week'].unique())
@@ -101,8 +106,21 @@ for _, row in scheduled_games.iterrows():
     schedule_df.loc[week, home_team] = f'{away_team}'
     schedule_df.loc[week, away_team] = f'{home_team}'
 
-# Function to get colored text based on slot
+
+
 def format_opponent_text(opponent, slot, home):
+    """
+    Formats the HTML text to be displayed in schedule table for a particular team's game.
+    
+    Args:
+        opponent (str): The abbreviation of the opponent (e.g. "DAL").
+        slot (str): The slot of the game ("MNF", "TNF", "SNF", or "Sun")
+        home (binary): Whether the team is home or away for this game.
+    
+    Returns:
+        float: Projected number of viewers in millions.
+"""
+
     color_map = {
         'MNF': '#B59410', # this is a dark gold
         'SNF': '#32CD32',
@@ -168,7 +186,8 @@ def format_projected_viewers(row):
         return '--'
 
 
-# Place radio button in each column to allow user to select page
+# Place radio buttons at top of app to allow for user to navigate
+# between the 4 pages
 page_options = ["Home", "League Schedule", "Individual Team Analysis", "Analysis"]
 
 # Horizontal page selector
@@ -177,24 +196,6 @@ selected_page = st.radio(
     page_options,
     horizontal=True
 )
-
-
-# =============================================================================
-# button0, button1, button2, button3 = st.columns(4)
-# with button0:
-#     if st.button(page_options[0]):
-#         st.session_state.selected_page = page_options[0]
-# with button1:
-#     if st.button(page_options[1]):
-#         st.session_state.selected_page = page_options[1]
-# with button2:
-#     if st.button(page_options[2]):
-#         st.session_state.selected_page = page_options[2]
-# with button0:
-#     if st.button(page_options[3]):
-#         st.session_state.selected_page = page_options[3]
-# 
-# =============================================================================
 
 
 # Landing/Home page
@@ -231,7 +232,7 @@ if selected_page == page_options[0]:
     - **Data Collection**: Find information from the web relevant to understanding the state of primetime television viewership and the parameters of the 2025 NFL schedule.
     - **Viewership Modeling**: Using historical data, determine the variables that lead to individual teams attracting more viewership, and then to games more broadly, to project the number of viewers for each game in each of the different primetime windows.
     - **Scheduling**: Applying the viewership model to all 272 matchups in the 2025 NFL season, and using mathematical optimization techniques
-            to find the schedule that respects all mandated scheduling constraints (related to )
+            to find the schedule that respects all mandated scheduling constraints (related to travel, home-away balance, competitive concerns, etc).
     - **App Creation**: Making the app that you are looking at right now!
     """)
 
@@ -252,10 +253,10 @@ if selected_page == page_options[0]:
     st.header("Limitations")
     st.markdown("""
         This schedule probably isn't ready for the prime time. Here are some areas where it falls short, relative to what would be required for a real NFL schedule:
-- Viewership data was collected from public sources for just 2 seasons of games (2022-23), and only for games in the traditional primetime windows. Real practitioners would hopefully have a much more robust viewership dataset. 
-- Only a small number of variables were tested to create the viewership model, and just 2 were included in the final model. Real practitioners would probably spend more time collecting possible factors for their viewership model and testing different model architectures with their more robust dataset.
-- To solve for the optimal schedule, a free solver (called CBC) was run on a personal laptop. Real practitioners would have access to better solvers and bigger machines.
-- As a result of the limited computational power available, not every constraint that the league might consider was included. For example, this schedule does not account for international games or dates when a team's stadium might be used by other uses (e.g. concerts). Additionally, certain competition constraints, like restrictions on instances of playing a team coming off its bye, were not used in this process.
+    - Viewership data was collected from public sources for just 2 seasons of games (2022-23), and only for games in the traditional primetime windows. Real practitioners would hopefully have a much more robust viewership dataset. 
+    - Only a handful of variables were tested to determine if they helped predict the number of viewers of any game. Real practitioners would probably spend more time collecting possible factors for their viewership model and testing different model architectures with their more robust dataset.
+    - To solve for the optimal schedule, a free solver (called CBC) was run on a personal laptop. Real practitioners would have access to better solvers and bigger machines.
+    - As a result of the limited computational power available, not every constraint that the league might consider was included. For example, this schedule does not account for international games or dates when a team's stadium might be used by other uses (e.g. concerts). Additionally, certain competition constraints, like restrictions on instances of playing a team coming off its bye, were not used in this process.
         """)
 
     
@@ -591,6 +592,7 @@ elif selected_page == page_options[2]:
         
         # st.pyplot(plt, use_container_width=True)
 
+# If select the "Analysis" tab
 elif selected_page == page_options[3]:
     # Page Layout
     st.title("Analysis")
@@ -599,7 +601,8 @@ elif selected_page == page_options[3]:
     st.markdown("""
         ## Introduction       
         <div class="wrapped-text">
-        The goal of the NFL schedule optimization model is to maximize viewership while respecting certain constraints.  This
+        The goal of the NFL schedule optimization model is to maximize viewership for primetime games while respecting certain constraints
+        prescribed by the league. This
         page reviews more specifics of the process used to create the schedule.
         </div>
         <br>
@@ -647,12 +650,10 @@ elif selected_page == page_options[3]:
     """, unsafe_allow_html=True)
     
 
-        
-
     # Model Explanation Section
     st.markdown("""
                 ## Projecting Viewership
-        We used two primary models in the scheduling process: the **Team Intrigue Model** and the **Viewership Model**.
+        We used two primary models in the scheduling process: the **Team Intrigue Model** and the **Game Viewership Model**.
     
         ### Team Intrigue Model
         The **Team Intrigue Model** was built to predict the intrigue score of a team based on multiple features, including:
@@ -778,7 +779,7 @@ elif selected_page == page_options[3]:
     .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
 
 
-    st.dataframe(teams_df_to_display, height = 500, width = 1000)   
+    st.dataframe(teams_df_to_display, height = 500)   
 
     st.markdown("""
     ### Viewership Model
@@ -801,6 +802,7 @@ elif selected_page == page_options[3]:
                                                                                of a factor not considered in the intrigue model),
         causing non-desired behavior. 
         </div>
+        <br>
     """, unsafe_allow_html=True)
     
     st.markdown("""
@@ -808,28 +810,64 @@ elif selected_page == page_options[3]:
         As an example, the plot below shows the number of "viewers over expected" based on the intrigue score of the two
         teams. Here, expectation is determined simply by meta-factors such as the game's slot. 
         </div>
+        <br>
     """, unsafe_allow_html=True)
 
     
     st.image("results/viewership_over_expected.png")
     
+    st.markdown("""
+   <div class="wrapped-text">
+   So, one of the main questions of this particular modeling question is how to derive a reasonable
+   model given limitations of the viewership dataset. We know certain behavior that we expect to see,
+   but not exactly how to relate the intrigue score of the two teams together. In the end,
+   the model that was chosen was again a Lasso regression model, with the features and their 
+   coefficient values shown in the plot below. The key question here was to find some 
+   selection of variables related to the intrigue score of the two teams that led to increased
+   viewership projections as both teams got better. Many options were tried, and in the end,
+   the two most impactful such variables were "Max Intrigue Over Average", defined as the maximum
+   intrigue of the two teams minus 100 if the maximum intrigue was over 100 and 0 otherwise,
+   and "Product Of Intrigue Over Average", defined as the product of the intrigue-over-100 score
+   for both teams (Intrigue - 100 if Intrigue > 100, 0 otherwise). 
+   </div>
+   <br>
+   """, unsafe_allow_html=True)
     
     # Also plot viewership model coefficients
+    viewership_coef_df = pd.read_csv("results/ViewershipModelCoeffs.csv")
+
+    # Filter out small coefficients (keep only abs(coef) >= 0.001)
+    viewership_coef_df = viewership_coef_df[viewership_coef_df['Coefficient'].abs() >= 0.001]
     
+    feature_name_map = {
+        'intrigue_home': 'Home Intrigue',
+        'same_division': 'Same Division',
+        'max_above_average': 'Max Intrigue Over Average',
+        'AboveAverage_multiply': 'Product of Intrigue Over Average',
+        'SharedMNFWindow': 'Shared MNF Window',
+        'Window_TNF': 'TNF Slot',
+        'Window_SNF': 'SNF Slot'
+    }
+    viewership_coef_df['BetterFeatureName'] = viewership_coef_df['Feature'].map(feature_name_map)
+    viewership_coef_df = viewership_coef_df.sort_values(by = 'Coefficient', ascending=True, key = abs)
+        
+    plt.figure(figsize=(10, 6))
+    plt.barh(viewership_coef_df['BetterFeatureName'], viewership_coef_df['Coefficient'])
+    plt.xlabel("Coefficient Value (All Variables Scaled)")
+    plt.title("Game Viewers Model Feature Coefficients")
+    
+    # Save to BytesIO buffer in order to help with sizing
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches='tight', dpi=200)
+    buf.seek(0)
+    
+    # Display with reduced visual width
+    st.image(buf, width=800)  # Shrink display width
+
     #preprocessing = viewership_model_pipeline.named_steps['preprocessing']
     # Get the names of the features handled by StandardScaler (numeric features)
     #num_features = preprocessing.transformers_[0][2]  # StandardScaler is at index 0 in transformers_
         
-    # Get the names of the features handled by OneHotEncoder (categorical features)
-    #cat_features = ['Window_SNF', 'Window_TNF']
-    # Apply preprocessing (scaling, one-hot encoding) - give SNF values for ease of calculation
-                
-    # Get the model coefficients
-    # model_coefficients = viewership_model_pipeline.named_steps['model'].coef_
-          
-    # # Get the feature names after preprocessing (scaled numerical and one-hot encoded categorical)
-    # all_feature_names = num_features + list(cat_features)
-    
     # plt.figure(figsize=(10, 6))
     # plt.barh(all_feature_names, model_coefficients)
     # plt.xlabel("Coefficient Value (All Variables Scaled)")
@@ -837,11 +875,20 @@ elif selected_page == page_options[3]:
     # st.pyplot(plt)
     
 
+    st.markdown("""## Schedule Formulation""")
     
-    
+    st.markdown("""
+       <div class="wrapped-text">
+        The scheduling problem was set up as a binary integer program. This involved
+        creating an objective function and constraint matricies, and mathematically
+        enumerating each of the rules that we want to see in our schedule.
+        </div>
+           <br>     """,
+                unsafe_allow_html=True)
+                    
     # Scheduling Constraints Section
     st.markdown("""
-        ## Scheduling Constraints
+        ## Constraints
         The following constraints were incorporated into the scheduling process:
         - **Basic Scheduling Considerations**: All 272 games prescribed by the league must be played exactly once. Max 1 game per team per week.
         - **Number of Primetime Games**: Exactly one game must be scheduled in each of the 3 primetime windows (TNF, SNF, and MNF) in each week,
@@ -849,45 +896,74 @@ elif selected_page == page_options[3]:
         - **Bye Week**: Each team must have one bye week between Weeks 5-14.
         - **Stadium Conflicts**: The NY and LA teams cannot both be home during the same week.
         - **Week 18**: Last game of season must be against divisional opponent.
-        - **Spacing**: Two teams cannot play 2 games within 2 weeks of each other (i.e. if they play Week X, cannot play again until Week X+3)
+        - **Spacing**: Two teams cannot play 2 games within 2 weeks of each other (i.e. if they play Week X, cannot play again until Week X+3).
         - **Home/Road Balance**: Teams must have at least 1 home game every 3 weeks. Cannot play 4 consecutive home games.
         - **Beginning/End**: Each team must have 1 home game during Weeks 1-2 and 1 home game during Weeks 17-18.
         - **Restricted Dates**: Dallas and Detroit must be home on Thanksgiving.
         - **Thursday Restrictions**
             - Max 2 TNF games per team, with a max of 1 of those at home.
-            - If play road Thursday game, then need to be home previous week
+            - If play road Thursday game, then need to be home previous week.
             - All teams playing home Thursday games must play within division
               or same division other conference (i.e. AFC East vs NFC East)
-              during previous week
+              during previous week.
             - Teams that play Thursday after Thanksgiving must have played
-                on Thanksgiving
-            - Teams that play on Thursday can't have played previous SNF or MNF
-            - Cannot travel more than two time zones for Thursday game
+                on Thanksgiving/
+            - Teams that play on Thursday can't have played previous SNF or MNF/
+            - Cannot travel more than two time zones for Thursday game.
         - **Primetime Restrictions** 
             - Minimum quality of primetime game required (mean intrigue of 88 for TNF, 93 for MNF, 100 for SNF).
-            - Max 5 total primetime games per team
+            - Max 5 total primetime games per team.
+            - Cannot host primetime game in same slot in consecutive weeks.
     """)
     
         
     # Problem Setup in Solver Section
     st.markdown("""
         ## Solver Setup and Problem Formulation
-        The scheduling problem was formulated as an **integer programming** problem using Google's OR-Tools. A binary variable \(x_{ijk}\) was introduced to represent whether **matchup i** occurs in **week j** at **slot k**.
-    
+        The scheduling problem was formulated as an **integer programming** problem.
+        
         The problem is set up as follows:
         - **Variables**: Binary variable $x_{ijk}$ was defined for each matchup i, week j, and slot k. With 272 matchups, 18 weeks,
             and 4 slots per week, this created 19,584 binary variables.
         - **Objective Function**: Created by projecting the number of viewers for each matchup in each slot. Assume
            that all games not in a primetime slot would have 0 viewers.
+        - **Constraint Matricies**: Matricies representing the various constraints, applied
         
-        In total, the final model had:
-        - **588 equality constraints**
-        - **5748 inequality constraints**
-        
-        The final problem was solved using a CBC solver through Google's OR-Tools, which efficiently handles large constraint sets.
-        The solver was allowed to run for 2 hours on a personal laptop.
- 
+        The mathematical formulation for the problem is:
     """)
+
+    st.latex(r"""
+        \begin{aligned}
+        \text{Maximize} \quad & f^\top x \\
+        \text{subject to} \quad 
+        & A_{\text{in}} x \leq b_{\text{in}} \\
+        & A_{\text{eq}} x = b_{\text{eq}} \\
+        & x \in \{0, 1\}^n
+        \end{aligned}
+    """)
+    
+    # Explain each term below the math
+    st.markdown("""
+    Where:
+    - $f \\in \\mathbb{R}^n$: vector of objective coefficients
+    - $x \\in \\{0,1\\}^n$: binary decision variables
+    - $A_{\\text{in}} \\in \\mathbb{R}^{m_1 \\times n}$: matrix of inequality constraint coefficients
+    - $b_{\\text{in}} \\in \\mathbb{R}^{m_1}$: right-hand side for inequality constraints
+    - $A_{\\text{eq}} \\in \\mathbb{R}^{m_2 \\times n}$: matrix of equality constraint coefficients
+    - $b_{\\text{eq}} \\in \\mathbb{R}^{m_2}$: right-hand side for equality constraints
+    """)
+    
+    st.markdown(""" In total, the final model had:  
+        - **588 equality constraints**  
+        - **6772 inequality constraints**  
+    """)
+        
+    st.markdown("""
+                <div class="wrapped-text">
+        The  problem was solved using a CBC solver through Google's OR-Tools, which efficiently handled large constraint sets.
+        The solver was allowed to run for 2 hours on a personal laptop.
+        </div>
+    """, unsafe_allow_html=True)
     
    
     
