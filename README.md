@@ -1,4 +1,6 @@
 # 🏈 NFL Scheduling Project
+[![Streamlit App](https://img.shields.io/badge/Streamlit-App-orange?logo=streamlit)](https://schedule-app.streamlit.app/)
+[![Last Updated](https://img.shields.io/github/last-commit/gahan4/nfl-schedule)](https://github.com/gahan4/nfl-schedule/commits/main)
 
 This project builds a prototype schedule for the 2025 NFL season, optimizing game placements to maximize viewership while satisfying NFL scheduling constraints.
 
@@ -19,9 +21,9 @@ This project builds a prototype schedule for the 2025 NFL season, optimizing gam
 
 ## 📁 Repository Structure
 
-- `data/` – Raw and processed datasets  
+- `data/` – Raw and processed datasets
 - `src/` – Code for data processing, modeling, and optimization  
-- `app/` – Streamlit app that presents the final results  
+- `app/` – Code to create Streamlit app that presents the final results  
 - `results/` – Output files, trained models, and plots
   
 ---
