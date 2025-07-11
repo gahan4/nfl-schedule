@@ -35,7 +35,7 @@ The interactive app includes:
 - Schedule and intrigue breakdowns for every team  
 - Detailed analysis of the methods, techniques, and data sources used to create the schedule
 
-[Open the app](https://schedule-app.streamlit.app/)
+[Open the app](https://nfl-schedule.onrender.com/)
 
 ---
 
