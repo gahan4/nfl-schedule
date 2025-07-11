@@ -32,6 +32,9 @@ teams, scheduled_games, intrigue_model_pipeline = load_data()
 
 # Generate coefficient plots at startup to ensure they're always current
 print("Generating coefficient plots...")
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from generate_coefficient_plots import generate_coefficient_plots
 generate_coefficient_plots()
 
