@@ -1,0 +1,527 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis - NFL Schedule App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analysis-section {
+        margin-bottom: 3rem;
+    }
+    .analysis-section h2 {
+        color: #f3f4f6;
+        font-size: 1.875rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #374151;
+        padding-bottom: 0.5rem;
+    }
+    .analysis-section h3 {
+        color: #f3f4f6;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        margin-top: 2rem;
+    }
+    .wrapped-text {
+        line-height: 1.7;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+    .data-source-item {
+        margin-bottom: 1rem;
+        padding-left: 1rem;
+        border-left: 3px solid #374151;
+    }
+    .constraint-item {
+        margin-bottom: 0.75rem;
+        padding-left: 1rem;
+        border-left: 2px solid #4b5563;
+    }
+    .constraint-category {
+        font-weight: 600;
+        color: #f3f4f6;
+        margin-bottom: 0.5rem;
+    }
+    .math-formula {
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        text-align: center;
+        font-family: 'Times New Roman', serif;
+    }
+    .analysis-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+        border: 1px solid #374151;
+    }
+    .data-table {
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 1.5rem 0;
+    }
+    .data-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th {
+        background: #374151;
+        color: #f3f4f6;
+        padding: 0.75rem;
+        text-align: center;
+        font-weight: 600;
+        border-bottom: 1px solid #4b5563;
+        cursor: pointer;
+        user-select: none;
+    }
+    .data-table th:hover {
+        background: #4b5563;
+    }
+    .data-table td {
+        padding: 0.75rem;
+        text-align: center;
+        border-bottom: 1px solid #374151;
+        color: #d1d5db;
+    }
+    .data-table tr:hover {
+        background: #2d3748;
+    }
+    .coefficient-plot {
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        text-align: center;
+    }
+    .coefficient-plot img {
+        max-width: 100%;
+        height: auto;
+    }
+    .stats-highlight {
+        background: #1e3a8a;
+        border: 1px solid #3b82f6;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        text-align: center;
+    }
+    .stats-highlight strong {
+        color: #60a5fa;
+        font-size: 1.1rem;
+    }
+</style>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+  },
+  svg: {
+    fontCache: 'global'
+  }
+};
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold dark-heading mb-4">Analysis</h1>
+    <p class="dark-subtext">
+        Deep dive into the methodology, data sources, and technical decisions behind the NFL schedule optimization.
+    </p>
+</div>
+
+<!-- Introduction Section -->
+<div class="analysis-section">
+    <h2>Introduction</h2>
+    <div class="wrapped-text">
+        The goal of the NFL schedule optimization model is to maximize viewership for primetime games while respecting certain constraints
+        prescribed by the league. This page reviews more specifics of the process used to create the schedule.
+    </div>
+    <div class="wrapped-text">
+        At a high level, the schedule was created by creating a model to predict
+        the likely number of viewers for any game in any slot and then optimizing
+        to create a schedule that maximized the projected number of primetime viewers while adhering
+        to various league constraints. The modeling step was divided into two parts,
+        with a first-level model predicting the "intrigue" of each individual team as compared
+        to the other teams in the league, and the second-level model predicting the number
+        of viewers for a particular game given the intrigue of the teams involved.
+    </div>
+</div>
+
+<!-- Data Sources Section -->
+<div class="analysis-section">
+    <h2>Data Sources</h2>
+    <div class="wrapped-text">
+        In order to create the viewership models, we needed training data.
+        The following data sources were used to collect information that was tested in the viewership model. 
+        This information was collected for each team and season. Ideally, information
+        tested in the model was required to have been known at the time of schedule creation, around 6 months prior to the first game of the season. 
+        However, some information, such as market size and number of twitter followers, was taken 
+        from the present day (Feb 2025).
+    </div>
+    
+    <div class="data-source-item">
+        <strong>Viewership Data:</strong> Manually taken from SportsMediaWatch. An example link is <a href="https://www.sportsmediawatch.com/nfl-tv-ratings-viewership-2023/" class="text-blue-400 hover:text-blue-300">here</a>. Data was uploaded to this website
+        in the form of a picture, presenting the number of viewers in every game slot. Data was only acquired for the 2022 and 2023 seasons. Note that data was not available for each game that was
+        not independently rated - most relevant, there was no viewership figure for each specific Sunday afternoon game.
+    </div>
+    
+    <div class="data-source-item">
+        <strong>General Team Information:</strong> Acquired via the nfl_data_py package. This included their name, division, city, etc.
+    </div>
+    
+    <div class="data-source-item">
+        <strong>Market Population:</strong> Scraped from a SportsMediaWatch article (<a href="https://www.sportsmediawatch.com/nba-market-size-nfl-mlb-nhl-nielsen-ratings/" class="text-blue-400 hover:text-blue-300">Link</a>) using the pandas package.
+    </div>
+    
+    <div class="data-source-item">
+        <strong>Twitter Followers:</strong> Scraped from an article on <a href="https://www.sportsmillions.com/picks/nfl/which-nfl-team-has-the-most-x-twitter-followers" class="text-blue-400 hover:text-blue-300">SportsMillions</a> using the BeautifulSoup package.
+        Data is current as of Nov 2024.
+    </div>
+    
+    <div class="data-source-item">
+        <strong>Jersey Sales Rankings:</strong> Scraped from the NFLPA website using BeautifulSoup. An example of such a website is <a href="https://nflpa.com/partners/posts/top-50-nfl-player-sales-list-march-1-2021-february-28-2022" class="text-blue-400 hover:text-blue-300">here</a>. The NFLPA publishes 
+        a list of the top 50 players in apparel rankings over each league-season. For purposes here, all players were assigned to a specific team (the team they would be on the upcoming season), assigned a value using a decay
+        function that assigned weight of 1 to the top-selling player and decayed by e^{-.05 * (Rank - 1)} for each subsequent player (so the 2nd highest seller would get weight ~.95, the 50th highest around ~.09), and then 
+        the total score for each team was calculated.
+    </div>
+    
+    <div class="data-source-item">
+        <strong>Draft Intrigue Metric:</strong> Created to attempt to understand the impact of a team having high draft picks on viewership. Draft slot information was scraped from Wikipedia using BeautifulSoup. The idea was to
+        assign a value to each draft slot in a highly decayed manner, overwhelmingly upweighting top picks. However, this variable did not prove predictive in the Team Intrigue model, potentially because
+        not all top picks were used on offensive players (especially QB's) who may have moved viewership.
+    </div>
+    
+    <div class="data-source-item">
+        <strong>Required Matchups:</strong> Scraped from a league press release (<a href="https://operations.nfl.com/updates/the-game/2025-opponents-determined/" class="text-blue-400 hover:text-blue-300">link</a>) using BeautifulSoup.
+    </div>
+</div>
+
+<!-- Model Explanation Section -->
+<div class="analysis-section">
+    <h2>Projecting Viewership</h2>
+    <div class="wrapped-text">
+        We used two primary models in the scheduling process: the <strong>Team Intrigue Model</strong> and the <strong>Game Viewership Model</strong>.
+    </div>
+    
+    <h3>Team Intrigue Model</h3>
+    <div class="wrapped-text">
+        The <strong>Team Intrigue Model</strong> was built to predict the intrigue score of a team based on multiple features, including:
+    </div>
+    <ul class="list-disc list-inside text-gray-300 ml-4 mb-4">
+        <li>Team performance (Win Percentage from previous season)</li>
+        <li>Number of twitter followers</li>
+        <li>Population of home market</li>
+        <li>Popularity of individual players on team (measured using jersey sales)</li>
+        <li>Key team changes such as the introduction of a new quarterback or the draft position (e.g., the team with the 1st overall pick could have more intrigue)</li>
+        <li>Nuisance variables were added to account for game slot (i.e. SNF gets more viewership than TNF, games played as part of an MNF doubleheader get fewer viewers than standalone games)</li>
+    </ul>
+    
+    <div class="wrapped-text">
+        A Lasso regression model was selected for feature selection because it helps in determining the most influential variables while avoiding overfitting by applying L1 regularization.
+        The bar plot below shows the coefficients that the model chose - note that
+        all variables were normally scaled, and the response variable is "number of viewers". Aside from the nuisance variables,
+        we see that the most important features are the previous season's win percentage, twitter followers, and weighted jersey sales,
+        with market population and the presence of a new high-value QB providing some value. However, note that when creating
+        the schedule in April, we don't know for sure which high-value QBs might change teams.
+    </div>
+    
+    <div class="coefficient-plot">
+        <h4 class="text-lg font-semibold mb-4">Intrigue Model Feature Coefficients</h4>
+        <img src="{{ url_for('static', filename='images/intrigue_model_coefficients.png') }}" alt="Intrigue Model Coefficients" class="analysis-image">
+    </div>
+    
+    <div class="wrapped-text">
+        To go from the results of the model to a more understandable Intrigue Score,
+        we simply scaled the results so that the mean intrigue score would be 100 and the standard deviation would be 20.
+        To do this, we found the mean and standard deviation of projected SNF Viewers for 2022-23 teams (using the model above),
+        then applying that same mean and standard deviation to 2025 teams.
+    </div>
+    
+    <div class="wrapped-text">
+        The table below shows all of the factors that contributed to the creation of team's
+        intrigue scores for the 2025 season, as well as the scores from each team. The table
+        is sortable by each column.
+    </div>
+    
+    <!-- Team Intrigue Data Table -->
+    <div class="data-table">
+        <table id="teams-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">Team ↕</th>
+                    <th onclick="sortTable(1)">2024 Win Pct ↕</th>
+                    <th onclick="sortTable(2)">Market Population ↕</th>
+                    <th onclick="sortTable(3)">Twitter Followers ↕</th>
+                    <th onclick="sortTable(4)">New High Value QB ↕</th>
+                    <th onclick="sortTable(5)">Weighted Jersey Sales ↕</th>
+                    <th onclick="sortTable(6)">Intrigue Score ↕</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in teams_data %}
+                {% set intrigue_style = "background-color: " + team.intrigue_color + "; color: " + team.intrigue_text_color + ";" %}
+                <tr>
+                    <td>{{ team.team_abbr }}</td>
+                    <td>{{ "%.3f"|format(team.WinPct) }}</td>
+                    <td>{{ "{:,}".format(team.market_pop) }}</td>
+                    <td>{{ "{:,.0f}".format(team.twitter_followers) }}</td>
+                    <td>{{ "Yes" if team.new_high_value_qb else "No" }}</td>
+                    <td>{{ "%.3f"|format(team.WeightedJerseySales) }}</td>
+                    <td style="{{ intrigue_style }}">{{ team.intrigue | int }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <h3>Viewership Model</h3>
+    <div class="wrapped-text">
+        The <strong>Viewership Model</strong> predicts the viewership of a game based on the intrigue scores of the two teams involved. Factors included in this model:
+    </div>
+    <ul class="list-disc list-inside text-gray-300 ml-4 mb-4">
+        <li><strong>Intrigue Scores of Both Teams:</strong> Based on the <strong>Team Intrigue Model</strong></li>
+        <li><strong>Additional Factors:</strong> Whether the game is a divisional matchup, which could increase interest</li>
+        <li><strong>Challenges:</strong> A major challenge in building this model was the relatively small number of games with low-ranked teams, leading to a risk of overfitting</li>
+    </ul>
+    
+    <div class="wrapped-text">
+        A Lasso model was also chosen here. In our particular case, we are particularly worried about overfitting because of limitations
+        in the data sample. Notably, we only had 2 seasons worth of data, and only had data available for
+        primetime games. As a result, model structures that featured more complex interactions between the two teams caused non-intuitive
+        behavior. As an example, there have not been many games where two "non-intriguing" teams have played in primetime. As
+        a result, these sorts of games were not in the training data, though there are certainly many games on the schedule
+        between two non-intriguing teams. But, many complex model structures were unable to learn that these games are likely
+        to be very unpopular, so overweighted on the few such primetime games (which were probably put in primetime because
+        of a factor not considered in the intrigue model), causing non-desired behavior.
+    </div>
+    
+    <div class="wrapped-text">
+        As an example, the plot below shows the number of "viewers over expected" based on the intrigue score of the two
+        teams. Here, expectation is determined simply by meta-factors such as the game's slot.
+    </div>
+    
+    <div class="coefficient-plot">
+        <h4 class="text-lg font-semibold mb-4">Viewership Over Expected</h4>
+        <img src="{{ url_for('static', filename='images/viewership_over_expected.png') }}" alt="Viewership Over Expected" class="analysis-image">
+    </div>
+    
+    <div class="wrapped-text">
+        So, one of the main questions of this particular modeling question is how to derive a reasonable
+        model given limitations of the viewership dataset. We know certain behavior that we expect to see,
+        but not exactly how to relate the intrigue score of the two teams together. In the end,
+        the model that was chosen was again a Lasso regression model, with the features and their 
+        coefficient values shown in the plot below. The key question here was to find some 
+        selection of variables related to the intrigue score of the two teams that led to increased
+        viewership projections as both teams got better. Many options were tried, and in the end,
+        the two most impactful such variables were "Max Intrigue Over Average", defined as the maximum
+        intrigue of the two teams minus 100 if the maximum intrigue was over 100 and 0 otherwise,
+        and "Product Of Intrigue Over Average", defined as the product of the intrigue-over-100 score
+        for both teams (Intrigue - 100 if Intrigue > 100, 0 otherwise).
+    </div>
+    
+    <div class="coefficient-plot">
+        <h4 class="text-lg font-semibold mb-4">Game Viewers Model Feature Coefficients</h4>
+        <img src="{{ url_for('static', filename='images/viewership_model_coefficients.png') }}" alt="Viewership Model Coefficients" class="analysis-image">
+    </div>
+</div>
+
+<!-- Schedule Formulation Section -->
+<div class="analysis-section">
+    <h2>Schedule Formulation</h2>
+    <div class="wrapped-text">
+        The scheduling problem was set up as a binary integer program. This involved
+        creating an objective function and constraint matricies, and mathematically
+        enumerating each of the rules that we want to see in our schedule.
+    </div>
+    
+    <h3>Constraints</h3>
+    <div class="wrapped-text">
+        The following constraints were incorporated into the scheduling process:
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Basic Scheduling Considerations:</div>
+        All 272 games prescribed by the league must be played exactly once. Max 1 game per team per week.
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Number of Primetime Games:</div>
+        Exactly one game must be scheduled in each of the 3 primetime windows (TNF, SNF, and MNF) in each week,
+        with the exception of Week 18 (no primetime games) and Thanksgiving (3 primetime games).
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Bye Week:</div>
+        Each team must have one bye week between Weeks 5-14.
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Stadium Conflicts:</div>
+        The NY and LA teams cannot both be home during the same week.
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Week 18:</div>
+        Last game of season must be against divisional opponent.
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Spacing:</div>
+        Two teams cannot play 2 games within 2 weeks of each other (i.e. if they play Week X, cannot play again until Week X+3).
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Home/Road Balance:</div>
+        Teams must have at least 1 home game every 3 weeks. Cannot play 4 consecutive home games.
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Beginning/End:</div>
+        Each team must have 1 home game during Weeks 1-2 and 1 home game during Weeks 17-18.
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Restricted Dates:</div>
+        Dallas and Detroit must be home on Thanksgiving.
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Thursday Restrictions:</div>
+        <ul class="list-disc list-inside text-gray-300 ml-4 mt-2">
+            <li>Max 2 TNF games per team, with a max of 1 of those at home.</li>
+            <li>If play road Thursday game, then need to be home previous week.</li>
+            <li>All teams playing home Thursday games must play within division or same division other conference (i.e. AFC East vs NFC East) during previous week.</li>
+            <li>Teams that play Thursday after Thanksgiving must have played on Thanksgiving.</li>
+            <li>Teams that play on Thursday can't have played previous SNF or MNF.</li>
+            <li>Cannot travel more than two time zones for Thursday game.</li>
+        </ul>
+    </div>
+    
+    <div class="constraint-item">
+        <div class="constraint-category">Primetime Restrictions:</div>
+        <ul class="list-disc list-inside text-gray-300 ml-4 mt-2">
+            <li>Minimum quality of primetime game required (mean intrigue of 88 for TNF, 93 for MNF, 100 for SNF).</li>
+            <li>Max 5 total primetime games per team.</li>
+            <li>Cannot host primetime game in same slot in consecutive weeks.</li>
+        </ul>
+    </div>
+    
+    <h3>Solver Setup and Problem Formulation</h3>
+    <div class="wrapped-text">
+        The scheduling problem was formulated as an <strong>integer programming</strong> problem.
+    </div>
+    
+    <div class="wrapped-text">
+        The problem is set up as follows:
+    </div>
+    <ul class="list-disc list-inside text-gray-300 ml-4 mb-4">
+        <li><strong>Variables:</strong> Binary variable \(x_{ijk}\) was defined for each matchup \(i\), week \(j\), and slot \(k\). With 272 matchups, 18 weeks, and 4 slots per week, this created 19,584 binary variables.</li>
+        <li><strong>Objective Function:</strong> Created by projecting the number of viewers for each matchup in each slot. Assume that all games not in a primetime slot would have 0 viewers.</li>
+        <li><strong>Constraint Matrices:</strong> Matrices representing the various constraints, applied</li>
+    </ul>
+    
+    <div class="wrapped-text">
+        The mathematical formulation for the problem is:
+    </div>
+    
+    <div class="math-formula">
+        <div style="font-size: 1.2rem; margin-bottom: 1rem;">
+            <strong>Maximize:</strong> \(f^T x\)
+        </div>
+        <div style="font-size: 1.1rem;">
+            <strong>Subject to:</strong><br>
+            \(A_{\text{in}} x \leq b_{\text{in}}\)<br>
+            \(A_{\text{eq}} x = b_{\text{eq}}\)<br>
+            \(x \in \{0,1\}^n\)
+        </div>
+    </div>
+    
+    <div class="wrapped-text">
+        Where:
+    </div>
+    <ul class="list-disc list-inside text-gray-300 ml-4 mb-4">
+        <li>\(f \in \mathbb{R}^n\): vector of objective coefficients</li>
+        <li>\(x \in \{0,1\}^n\): binary decision variables</li>
+        <li>\(A_{\text{in}} \in \mathbb{R}^{m_1 \times n}\): matrix of inequality constraint coefficients</li>
+        <li>\(b_{\text{in}} \in \mathbb{R}^{m_1}\): right-hand side for inequality constraints</li>
+        <li>\(A_{\text{eq}} \in \mathbb{R}^{m_2 \times n}\): matrix of equality constraint coefficients</li>
+        <li>\(b_{\text{eq}} \in \mathbb{R}^{m_2}\): right-hand side for equality constraints</li>
+    </ul>
+    
+    <div class="stats-highlight">
+        <strong>In total, the final model had:</strong><br>
+        <strong>588 equality constraints</strong><br>
+        <strong>6,772 inequality constraints</strong>
+    </div>
+    
+    <div class="wrapped-text">
+        The problem was solved using a CBC solver through Google's OR-Tools, which efficiently handled large constraint sets.
+        The solver was allowed to run for 2 hours on a personal laptop.
+    </div>
+</div>
+
+<script>
+function sortTable(columnIndex) {
+    const table = document.getElementById('teams-table');
+    const tbody = table.getElementsByTagName('tbody')[0];
+    const rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    // Get current sort direction
+    const header = table.getElementsByTagName('th')[columnIndex];
+    const currentDirection = header.getAttribute('data-sort') || 'asc';
+    const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+    
+    // Reset all headers to default state
+    const headers = table.getElementsByTagName('th');
+    for (let i = 0; i < headers.length; i++) {
+        const headerText = headers[i].textContent.replace(/[↑↓↕]/g, '').trim();
+        headers[i].textContent = headerText + ' ↕';
+        headers[i].removeAttribute('data-sort');
+    }
+    
+    // Set the clicked header to show current sort direction
+    const headerText = header.textContent.replace(/[↑↓↕]/g, '').trim();
+    header.textContent = headerText + (newDirection === 'asc' ? ' ↑' : ' ↓');
+    header.setAttribute('data-sort', newDirection);
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        let aValue = a.cells[columnIndex].textContent.trim();
+        let bValue = b.cells[columnIndex].textContent.trim();
+        
+        // Handle numeric values
+        if (columnIndex === 1 || columnIndex === 2 || columnIndex === 3 || columnIndex === 5 || columnIndex === 6) {
+            // Remove commas and convert to number
+            aValue = parseFloat(aValue.replace(/,/g, ''));
+            bValue = parseFloat(bValue.replace(/,/g, ''));
+            
+            if (newDirection === 'asc') {
+                return aValue - bValue;
+            } else {
+                return bValue - aValue;
+            }
+        } else {
+            // String comparison
+            if (newDirection === 'asc') {
+                return aValue.localeCompare(bValue);
+            } else {
+                return bValue.localeCompare(aValue);
+            }
+        }
+    });
+    
+    // Reorder rows in the table
+    rows.forEach(row => tbody.appendChild(row));
+}
+</script>
+{% endblock %} 

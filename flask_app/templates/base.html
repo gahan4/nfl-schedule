@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NFL Schedule App{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              darkbg: '#18181b',
+              darkcard: '#23232a',
+              darknav: '#1e293b',
+              darkborder: '#27272a',
+              darktext: '#f3f4f6',
+              darkmuted: '#a1a1aa',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+        body { background: #18181b; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e293b 0%, #18181b 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: #fbbf24;
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .nav-link.active::after {
+            width: 100%;
+        }
+        .schedule-cell {
+            transition: all 0.2s ease;
+        }
+        .schedule-cell:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .team-card, .stat-card {
+            background: #23232a;
+            border: 1px solid #27272a;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-darkbg text-darktext min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-white text-xl font-bold">🏈 NFL Schedule App</h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-8">
+                    <a href="{{ url_for('home') }}" 
+                       class="nav-link text-darktext hover:text-yellow-300 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'home' %}active{% endif %}">
+                        Home
+                    </a>
+                    <a href="{{ url_for('schedule') }}" 
+                       class="nav-link text-darktext hover:text-yellow-300 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'schedule' %}active{% endif %}">
+                        League Schedule
+                    </a>
+                    <a href="{{ url_for('team_analysis_dropdown') }}" 
+                       class="nav-link text-darktext hover:text-yellow-300 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'team_analysis_dropdown' or request.endpoint == 'team_analysis' %}active{% endif %}">
+                        Individual Team Analysis
+                    </a>
+                    <a href="{{ url_for('analysis') }}" 
+                       class="nav-link text-darktext hover:text-yellow-300 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'analysis' %}active{% endif %}">
+                        Analysis
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- Main Content -->
+    <main class="max-w-full mx-auto px-2 sm:px-4 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+    <!-- Footer -->
+    <footer class="bg-darknav text-darkmuted mt-16">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center">
+                <p class="text-darkmuted">
+                    NFL Schedule App - Created with Flask and modern web technologies
+                </p>
+                <p class="text-darkmuted text-sm mt-2">
+                    All code available on <a href="https://github.com/gahan4/nfl-schedule/" class="text-yellow-300 hover:text-yellow-200">GitHub</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

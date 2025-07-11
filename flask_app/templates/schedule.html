@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}League Schedule - NFL Schedule App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .schedule-table {
+        font-size: 0.7rem;
+        border-collapse: collapse;
+        table-layout: fixed;
+        width: 100%;
+        background: #18181b;
+    }
+    .game-cell {
+        min-width: 28px;
+        height: 28px;
+        border: 1px solid #27272a;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        padding: 2px 0;
+        vertical-align: middle;
+        background: transparent;
+        font-size: 0.95rem;
+    }
+    .game-cell:hover {
+        transform: scale(1.08);
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    /* Home games - colored backgrounds */
+    .game-cell.mnf { background-color: #B59410; color: #fff; }
+    .game-cell.snf { background-color: #32CD32; color: #fff; }
+    .game-cell.tnf { background-color: #800080; color: #fff; }
+    .game-cell.sun { background-color: #44444a; color: #fff; }
+    /* Away games - white background with colored text */
+    .game-cell.away { background: #fff; color: #23232a; border: 1px solid #27272a; }
+    .game-cell.away.mnf { color: #B59410; }
+    .game-cell.away.snf { color: #32CD32; }
+    .game-cell.away.tnf { color: #800080; }
+    .game-cell.away.sun { color: #44444a; }
+    .bye-cell {
+        background-color: #27272a;
+        color: #a1a1aa;
+        font-weight: bold;
+        text-align: center;
+        padding: 4px 0;
+        border: 1px solid #27272a;
+        font-size: 0.7rem;
+    }
+    .week-header {
+        background-color: #23232a;
+        color: #f3f4f6;
+        font-weight: 900;
+        text-align: center;
+        padding: 6px 0;
+        border: 1px solid #27272a;
+        min-width: 24px;
+        font-size: 1.1rem;
+        letter-spacing: 0.02em;
+    }
+    .team-header {
+        background-color: #23232a;
+        color: #f3f4f6;
+        font-weight: 900;
+        text-align: center;
+        padding: 6px 0;
+        border: 1px solid #27272a;
+        white-space: nowrap;
+        min-width: 28px;
+        font-size: 1.1rem;
+        letter-spacing: 0.02em;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin-right: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        margin-right: 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #27272a;
+    }
+    .dark-card {
+        background: #23232a;
+        color: #f3f4f6;
+        border: 1px solid #27272a;
+    }
+    .dark-heading {
+        color: #f3f4f6;
+    }
+    .dark-subtext {
+        color: #a1a1aa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold dark-heading mb-4">NFL League Schedule</h1>
+    <p class="dark-subtext">
+        Complete 2025 NFL season schedule for all 32 teams across 18 weeks. 
+        Games are color-coded by time slot and show home/away status.
+    </p>
+</div>
+
+<!-- Legend -->
+<div class="dark-card rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-lg font-semibold dark-heading mb-4">Legend</h2>
+    <div class="flex flex-wrap">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #B59410;"></div>
+            <span class="text-sm font-medium">MNF (Monday Night Football)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #32CD32;"></div>
+            <span class="text-sm font-medium">SNF (Sunday Night Football)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #800080;"></div>
+            <span class="text-sm font-medium">TNF (Thursday Night Football)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #44444a;"></div>
+            <span class="text-sm font-medium">Sun (Sunday Afternoon)</span>
+        </div>
+    </div>
+    <div class="mt-4 text-sm dark-subtext">
+        <strong>Colored Background:</strong> Home Game | <strong>White Background:</strong> Away Game
+    </div>
+</div>
+
+<!-- Schedule Table -->
+<div class="dark-card rounded-lg shadow-md overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="schedule-table w-full">
+            <thead>
+                <tr>
+                    <th class="week-header">Week</th>
+                    {% for team in teams %}
+                    <th class="team-header">{{ team }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for week_data in schedule_data %}
+                <tr>
+                    <td class="week-header">{{ week_data.week }}</td>
+                    {% for game in week_data.games %}
+                        {% if game.bye %}
+                        <td class="bye-cell"></td>
+                        {% else %}
+                        <td class="game-cell {% if game.home %}{{ game.slot.lower() }}{% else %}away {{ game.slot.lower() }}{% endif %}">
+                            {{ game.opponent }}
+                        </td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Team Selection for Individual Analysis -->
+<div class="dark-card rounded-lg shadow-md p-6 mt-8">
+    <h2 class="text-lg font-semibold dark-heading mb-4">Individual Team Analysis</h2>
+    <p class="dark-subtext mb-4">
+        Select a team to view their detailed schedule and viewership projections:
+    </p>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+        {% for team in teams %}
+        <a href="{{ url_for('team_analysis', team_abbr=team) }}" 
+           class="bg-gray-700 hover:bg-blue-900 text-gray-100 hover:text-yellow-300 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
+            {{ team }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

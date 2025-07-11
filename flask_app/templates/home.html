@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Home - NFL Schedule App{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="text-center mb-12">
+    <h1 class="text-4xl font-bold dark-heading mb-4">
+        🏈 NFL Schedule App
+    </h1>
+    <p class="text-xl dark-subtext max-w-3xl mx-auto">
+        Welcome to the <strong>NFL Scheduling App</strong>! This platform presents a prototype schedule for the 2025 NFL season, 
+        created to maximize primetime television viewership while respecting league constraints.
+    </p>
+</div>
+
+<!-- App Sections Overview -->
+<div class="grid md:grid-cols-3 gap-8 mb-12">
+    <a href="{{ url_for('schedule') }}" class="card-hover team-card rounded-lg p-6 shadow-md block">
+        <div class="text-center">
+            <div class="text-3xl mb-4">📊</div>
+            <h3 class="text-lg font-semibold dark-heading mb-2">League Schedule</h3>
+            <p class="dark-subtext">
+                View the complete schedule grid for all 32 teams across 18 weeks with interactive visualizations.
+            </p>
+        </div>
+    </a>
+    <a href="{{ url_for('team_analysis_dropdown') }}" class="card-hover team-card rounded-lg p-6 shadow-md block">
+        <div class="text-center">
+            <div class="text-3xl mb-4">🏆</div>
+            <h3 class="text-lg font-semibold dark-heading mb-2">Team Analysis</h3>
+            <p class="dark-subtext">
+                Dive deep into individual team schedules and viewership projections with detailed analytics.
+            </p>
+        </div>
+    </a>
+    <a href="{{ url_for('analysis') }}" class="card-hover team-card rounded-lg p-6 shadow-md block">
+        <div class="text-center">
+            <div class="text-3xl mb-4">📈</div>
+            <h3 class="text-lg font-semibold dark-heading mb-2">Analysis</h3>
+            <p class="dark-subtext">
+                Explore the methodology and optimization techniques used to create this schedule.
+            </p>
+        </div>
+    </a>
+</div>
+
+<!-- How It Works Section -->
+<div class="dark-card rounded-lg shadow-md p-8 mb-8">
+    <h2 class="text-2xl font-bold dark-heading mb-6">How Does It Work?</h2>
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="text-center">
+            <div class="bg-blue-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl font-bold text-blue-300">1</span>
+            </div>
+            <h3 class="font-semibold dark-heading mb-2">Data Collection</h3>
+            <p class="dark-subtext text-sm">
+                Gather information from web sources about primetime television viewership and 2025 NFL schedule parameters.
+            </p>
+        </div>
+        <div class="text-center">
+            <div class="bg-green-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl font-bold text-green-300">2</span>
+            </div>
+            <h3 class="font-semibold dark-heading mb-2">Viewership Modeling</h3>
+            <p class="dark-subtext text-sm">
+                Use historical data to determine variables that drive viewership and project audience numbers.
+            </p>
+        </div>
+        <div class="text-center">
+            <div class="bg-purple-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl font-bold text-purple-300">3</span>
+            </div>
+            <h3 class="font-semibold dark-heading mb-2">Scheduling</h3>
+            <p class="dark-subtext text-sm">
+                Apply mathematical optimization to find the optimal schedule respecting all constraints.
+            </p>
+        </div>
+        <div class="text-center">
+            <div class="bg-yellow-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl font-bold text-yellow-300">4</span>
+            </div>
+            <h3 class="font-semibold dark-heading mb-2">App Creation</h3>
+            <p class="dark-subtext text-sm">
+                Build this interactive web application to visualize and explore the results.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Methods Used Section -->
+<div class="dark-card rounded-lg shadow-md p-8 mb-8">
+    <h2 class="text-2xl font-bold dark-heading mb-6">Methods Used</h2>
+    <div class="space-y-4">
+        <div class="flex items-start">
+            <div class="bg-blue-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-4 mt-1">1</div>
+            <div>
+                <p class="dark-subtext">
+                    <strong>Data Collection:</strong> Web scraping using BeautifulSoup and manual data entry from various sources.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-start">
+            <div class="bg-blue-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-4 mt-1">2</div>
+            <div>
+                <p class="dark-subtext">
+                    <strong>Viewership Modeling:</strong> Two-step process using lasso models with 5-fold cross-validation in scikit-learn.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-start">
+            <div class="bg-blue-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-4 mt-1">3</div>
+            <div>
+                <p class="dark-subtext">
+                    <strong>Scheduling:</strong> Integer linear optimization using Google's OR-TOOLS package in Python.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Intrigue Score Explanation -->
+<div class="dark-card rounded-lg shadow-md p-8 mb-8">
+    <h2 class="text-2xl font-bold dark-heading mb-6">Intrigue Score Methodology</h2>
+    <p class="dark-subtext mb-4">
+        The <strong>Intrigue Score</strong> quantifies a team's appeal to viewers using several key factors:
+    </p>
+    <div class="grid md:grid-cols-2 gap-6">
+        <div class="space-y-3">
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                <span class="dark-subtext"><strong>Win Percentage:</strong> Recent success attracts more viewers</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                <span class="dark-subtext"><strong>Twitter Followers:</strong> Social media engagement indicator</span>
+            </div>
+        </div>
+        <div class="space-y-3">
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                <span class="dark-subtext"><strong>Jersey Sales:</strong> Popular players boost attractiveness</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                <span class="dark-subtext"><strong>Market Size:</strong> Larger markets draw more attention</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Limitations Section -->
+<div class="bg-yellow-900 border border-yellow-700 rounded-lg p-6">
+    <h2 class="text-xl font-bold text-yellow-200 mb-4">⚠️ Limitations</h2>
+    <p class="text-yellow-200 mb-4">
+        This schedule is a prototype and has several limitations compared to a real NFL schedule:
+    </p>
+    <ul class="text-yellow-200 space-y-2 text-sm">
+        <li>• Limited viewership data (only 2 seasons, 2022-23)</li>
+        <li>• Restricted to traditional primetime windows</li>
+        <li>• Limited computational power (personal laptop, free solver)</li>
+        <li>• Missing constraints (international games, stadium conflicts, bye week restrictions)</li>
+    </ul>
+</div>
+
+<!-- Call to Action -->
+<div class="text-center mt-12">
+    <a href="{{ url_for('schedule') }}" 
+       class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg transition duration-300 inline-block">
+        Explore the Schedule →
+    </a>
+</div>
+{% endblock %} 
