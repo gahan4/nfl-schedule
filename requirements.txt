@@ -1,6 +1,7 @@
-streamlit
+flask>=2.3.0
 pandas
 numpy
 joblib>=1.2.0
 matplotlib
 scikit-learn
+gunicorn
