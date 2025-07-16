@@ -6,22 +6,25 @@
 <!-- Hero Section -->
 <div class="text-center mb-12">
     <h1 class="text-4xl font-bold dark-heading mb-4">
-        🏈 NFL Schedule App
+        NFL Schedule App
     </h1>
-    <p class="text-xl dark-subtext max-w-3xl mx-auto">
+    <p class="text-xl dark-subtext max-w-5xl mx-auto">
         Welcome to the <strong>NFL Scheduling App</strong>! This platform presents a prototype schedule for the 2025 NFL season, 
         created to maximize primetime television viewership while respecting league constraints.
     </p>
 </div>
 
 <!-- App Sections Overview -->
+<div class="text-center mb-4">
+    <p class="dark-subtext text-lg font-medium">Click any box below to continue your exploration of the schedule.</p>
+</div>
 <div class="grid md:grid-cols-3 gap-8 mb-12">
     <a href="{{ url_for('schedule') }}" class="card-hover team-card rounded-lg p-6 shadow-md block">
         <div class="text-center">
             <div class="text-3xl mb-4">📊</div>
             <h3 class="text-lg font-semibold dark-heading mb-2">League Schedule</h3>
             <p class="dark-subtext">
-                View the complete schedule grid for all 32 teams across 18 weeks with interactive visualizations.
+                View the complete schedule grid for all 32 teams across 18 weeks.
             </p>
         </div>
     </a>
@@ -30,7 +33,7 @@
             <div class="text-3xl mb-4">🏆</div>
             <h3 class="text-lg font-semibold dark-heading mb-2">Team Analysis</h3>
             <p class="dark-subtext">
-                Dive deep into individual team schedules and viewership projections with detailed analytics.
+                Dive deeper into individual team schedules and viewership projections
             </p>
         </div>
     </a>

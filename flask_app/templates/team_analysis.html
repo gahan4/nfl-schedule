@@ -13,6 +13,17 @@
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     }
+    .intrigue-highlight {
+        border: 2.5px solid #ffd700;
+        box-shadow: 0 0 16px 0 #ffd70044;
+        z-index: 1;
+        position: relative;
+    }
+    .intrigue-highlight .text-3xl {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+    }
     .schedule-row {
         transition: all 0.2s ease;
     }
@@ -83,10 +94,12 @@
     .schedule-table {
         font-size: 0.875rem;
         table-layout: fixed;
+        min-width: 420px;
+        max-width: 100%;
     }
     .schedule-table th,
     .schedule-table td {
-        padding: 0.75rem 0.5rem;
+        padding: 0.5rem 0.25rem;
         text-align: center;
         vertical-align: middle;
     }
@@ -97,18 +110,49 @@
         letter-spacing: 0.05em;
     }
     .game-intrigue-cell {
-        padding: 0;
-        border-radius: 0;
-        font-weight: 600;
-        font-size: 0.875rem;
-        color: white;
-        text-align: center;
         width: 100%;
         height: 100%;
+        min-width: 48px;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: white;
+        border-radius: 6px;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
     .slot-cell {
         font-weight: 600;
         font-size: 0.875rem;
+    }
+    @media (min-width: 768px) {
+        .team-flex-container {
+            display: flex;
+            gap: 3rem;
+            align-items: flex-start;
+        }
+        .schedule-half {
+            flex: 1 1 50%;
+            min-width: 0;
+            max-width: 520px;
+        }
+        .metrics-half {
+            flex: 1 1 50%;
+            min-width: 0;
+        }
+    }
+    @media (max-width: 767px) {
+        .team-flex-container {
+            display: block;
+        }
+        .schedule-half, .metrics-half {
+            width: 100%;
+            max-width: 100%;
+        }
     }
 </style>
 {% endblock %}
@@ -136,190 +180,193 @@ document.getElementById('team_select').addEventListener('change', function() {
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold dark-heading mb-2">{{ team_stats.name }}</h1>
-            <p class="dark-subtext">Team Metrics</p>
         </div>
     </div>
 </div>
 
-<!-- Team Statistics -->
-<div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-    {% set win_pct_percentile = ((32 - team_stats.win_pct_rank) / 31.0) * 100 %}
-    {% set twitter_percentile = ((32 - team_stats.twitter_rank) / 31.0) * 100 %}
-    {% set jersey_percentile = ((32 - team_stats.jersey_rank) / 31.0) * 100 %}
-    {% set market_percentile = ((32 - team_stats.market_rank) / 31.0) * 100 %}
-    {% set intrigue_percentile = ((32 - team_stats.intrigue_rank) / 31.0) * 100 %}
-    
-    {% set rgb_high = [17, 128, 65] %}
-    {% set rgb_low = [212, 36, 73] %}
-    
-    {% if win_pct_percentile <= 50 %}
-        {% set win_pct_color_int = [((255 - rgb_low[0]) / 50.0 * win_pct_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * win_pct_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * win_pct_percentile + rgb_low[2]) | int] %}
-    {% else %}
-        {% set win_pct_color_int = [((rgb_high[0] - 255) / 50 * win_pct_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * win_pct_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * win_pct_percentile + 2 * 255 - rgb_high[2]) | int] %}
-    {% endif %}
-    {% set win_pct_text_color = 'black' if win_pct_percentile >= 25 and win_pct_percentile <= 75 else 'white' %}
-    
-    {% if twitter_percentile <= 50 %}
-        {% set twitter_color_int = [((255 - rgb_low[0]) / 50.0 * twitter_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * twitter_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * twitter_percentile + rgb_low[2]) | int] %}
-    {% else %}
-        {% set twitter_color_int = [((rgb_high[0] - 255) / 50 * twitter_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * twitter_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * twitter_percentile + 2 * 255 - rgb_high[2]) | int] %}
-    {% endif %}
-    {% set twitter_text_color = 'black' if twitter_percentile >= 25 and twitter_percentile <= 75 else 'white' %}
-    
-    {% if jersey_percentile <= 50 %}
-        {% set jersey_color_int = [((255 - rgb_low[0]) / 50.0 * jersey_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * jersey_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * jersey_percentile + rgb_low[2]) | int] %}
-    {% else %}
-        {% set jersey_color_int = [((rgb_high[0] - 255) / 50 * jersey_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * jersey_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * jersey_percentile + 2 * 255 - rgb_high[2]) | int] %}
-    {% endif %}
-    {% set jersey_text_color = 'black' if jersey_percentile >= 25 and jersey_percentile <= 75 else 'white' %}
-    
-    {% if market_percentile <= 50 %}
-        {% set market_color_int = [((255 - rgb_low[0]) / 50.0 * market_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * market_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * market_percentile + rgb_low[2]) | int] %}
-    {% else %}
-        {% set market_color_int = [((rgb_high[0] - 255) / 50 * market_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * market_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * market_percentile + 2 * 255 - rgb_high[2]) | int] %}
-    {% endif %}
-    {% set market_text_color = 'black' if market_percentile >= 25 and market_percentile <= 75 else 'white' %}
-    
-    {% if intrigue_percentile <= 50 %}
-        {% set intrigue_color_int = [((255 - rgb_low[0]) / 50.0 * intrigue_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * intrigue_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * intrigue_percentile + rgb_low[2]) | int] %}
-    {% else %}
-        {% set intrigue_color_int = [((rgb_high[0] - 255) / 50 * intrigue_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * intrigue_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * intrigue_percentile + 2 * 255 - rgb_high[2]) | int] %}
-    {% endif %}
-    {% set intrigue_text_color = 'black' if intrigue_percentile >= 25 and intrigue_percentile <= 75 else 'white' %}
-    
-    <div class="stat-card rounded-lg p-6" style="background: rgb({{ win_pct_color_int[0] }}, {{ win_pct_color_int[1] }}, {{ win_pct_color_int[2] }})">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-lg font-semibold" style="color: {{ win_pct_text_color }}">Win Pct</h3>
-            <span class="rank-badge rank-{{ team_stats.win_pct_rank }}">{{ team_stats.win_pct_rank }}{% if team_stats.win_pct_rank % 10 == 1 and team_stats.win_pct_rank % 100 != 11 %}st{% elif team_stats.win_pct_rank % 10 == 2 and team_stats.win_pct_rank % 100 != 12 %}nd{% elif team_stats.win_pct_rank % 10 == 3 and team_stats.win_pct_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
+<div class="team-flex-container mb-8">
+    <!-- Schedule Table (now on the left/above) -->
+    <div class="schedule-half" style="min-width:360px;max-width:850px;flex:1 1 70%;">
+        <div class="dark-card rounded-lg shadow-md overflow-hidden mb-6">
+            <div class="p-6 border-b border-gray-700">
+                <h2 class="text-2xl font-bold dark-heading mb-2">2025 Schedule</h2>
+                <p class="dark-subtext">Complete schedule with viewership projections and game intrigue rankings</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="schedule-table w-full">
+                    <thead class="bg-gray-900">
+                        <tr>
+                            <th class="w-10 text-lg font-bold text-white">Week</th>
+                            <th class="w-14 text-lg font-bold text-white">Date</th>
+                            <th class="w-16 text-lg font-bold text-white">Slot</th>
+                            <th class="w-20 text-lg font-bold text-white">Opponent</th>
+                            <th class="w-20 text-lg font-bold text-white">Opponent Intrigue Score</th>
+                            <th class="w-24 text-lg font-bold text-white">Projected Viewers (M)</th>
+                            <th class="w-20 text-lg font-bold text-white">Game Intrigue Percentile</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-darkbg divide-y divide-gray-800">
+                        {% for game in schedule_data %}
+                        <tr class="schedule-row">
+                            <td class="text-base font-semibold text-white">{{ game.week }}</td>
+                            {% if game.bye %}
+                                <td class="text-base text-white" colspan="6" style="background-color: #2d3748; color: #e5e7eb; text-align: center; font-weight: bold;">BYE WEEK</td>
+                            {% else %}
+                                <td class="text-base text-white">{{ game.date }}</td>
+                                <td class="slot-cell text-base text-white">{{ game.slot }}</td>
+                                <td class="text-base font-semibold text-white">{{ game.opponent }}</td>
+                                <td class="text-base text-white">{{ game.opponent_intrigue | int }}</td>
+                                <td class="text-base text-white">{{ game.projected_viewers }}</td>
+                                <td style="padding:0;">
+                                    {% set percentile = game.intrigue_percentile %}
+                                    {% set rgb_high = [17, 128, 65] %}
+                                    {% set rgb_low = [212, 36, 73] %}
+                                    {% if percentile <= 50 %}
+                                        {% set color_int = [((255 - rgb_low[0]) / 50.0 * percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * percentile + rgb_low[2]) | int] %}
+                                    {% else %}
+                                        {% set color_int = [((rgb_high[0] - 255) / 50 * percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * percentile + 2 * 255 - rgb_high[2]) | int] %}
+                                    {% endif %}
+                                    {% set r_hex = '%02x' % color_int[0] %}
+                                    {% set g_hex = '%02x' % color_int[1] %}
+                                    {% set b_hex = '%02x' % color_int[2] %}
+                                    {% set color_string = (r_hex + g_hex + b_hex) | upper %}
+                                    {% set text_color = 'black' if percentile >= 25 and percentile <= 75 else 'white' %}
+                                    <div class="game-intrigue-cell" style="background-color: #{{ color_string }}; color: {{ text_color }}; width:100%; height:100%;">
+                                        {{ game.intrigue_percentile | int }}
+                                    </div>
+                                </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <p class="text-3xl font-bold" style="color: {{ win_pct_text_color }}">{{ team_stats.win_pct }}</p>
-        <p class="text-xs mt-2" style="color: {{ win_pct_text_color }}; opacity: 0.7;">Team's win percentage during the 2024 regular season</p>
-    </div>
-    <div class="stat-card rounded-lg p-6" style="background: rgb({{ twitter_color_int[0] }}, {{ twitter_color_int[1] }}, {{ twitter_color_int[2] }})">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-lg font-semibold" style="color: {{ twitter_text_color }}">Twitter Followers</h3>
-            <span class="rank-badge rank-{{ team_stats.twitter_rank }}">{{ team_stats.twitter_rank }}{% if team_stats.twitter_rank % 10 == 1 and team_stats.twitter_rank % 100 != 11 %}st{% elif team_stats.twitter_rank % 10 == 2 and team_stats.twitter_rank % 100 != 12 %}nd{% elif team_stats.twitter_rank % 10 == 3 and team_stats.twitter_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
+        <!-- Key Explanation (moved here) -->
+        <div class="dark-card rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold dark-heading mb-4">Key</h3>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div>
+                    <h4 class="font-medium dark-heading mb-2">Opponent Intrigue</h4>
+                    <p class="text-sm dark-subtext">
+                        Intrigue score of the opposing team based on popularity, performance, and market size. 
+                        100 is average, higher is better.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-medium dark-heading mb-2">Projected Viewers (M)</h4>
+                    <p class="text-sm dark-subtext">
+                        Projected number of viewers for the game (in millions). Based on historical data, 
+                        team popularity, and game slot. No projections for Sunday afternoon games.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-medium dark-heading mb-2">Game Intrigue Percentile</h4>
+                    <p class="text-sm dark-subtext">
+                        Ranks the game based on projected viewership relative to all other 2025 matchups. 
+                        0th percentile is worst game, 100th percentile is best game.
+                    </p>
+                </div>
+            </div>
         </div>
-        <p class="text-3xl font-bold" style="color: {{ twitter_text_color }}">
-            {% if team_stats.twitter_followers < 1 %}
-                {{ (team_stats.twitter_followers * 1000) | int }}K
-            {% else %}
-                {{ "%.1f"|format(team_stats.twitter_followers) }}M
-            {% endif %}
-        </p>
-        <p class="text-xs mt-2" style="color: {{ twitter_text_color }}; opacity: 0.7;">Team's number of twitter followers (in Nov 2024)</p>
     </div>
-    <div class="stat-card rounded-lg p-6" style="background: rgb({{ jersey_color_int[0] }}, {{ jersey_color_int[1] }}, {{ jersey_color_int[2] }})">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-lg font-semibold" style="color: {{ jersey_text_color }}">Weighted Jersey Sales</h3>
-            <span class="rank-badge rank-{{ team_stats.jersey_rank }}">{{ team_stats.jersey_rank }}{% if team_stats.jersey_rank % 10 == 1 and team_stats.jersey_rank % 100 != 11 %}st{% elif team_stats.jersey_rank % 10 == 2 and team_stats.jersey_rank % 100 != 12 %}nd{% elif team_stats.jersey_rank % 10 == 3 and team_stats.jersey_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
-        </div>
-        <p class="text-3xl font-bold" style="color: {{ jersey_text_color }}">{{ "%.2f"|format(team_stats.jersey_sales) }}</p>
-        <p class="text-xs mt-2" style="color: {{ jersey_text_color }}; opacity: 0.7;">Each player who finished in Top 50 of NFL apparel sales (according to NFLPA) was given a score (1 for highest-seller, down to ~.1 for 50th highest seller), and Weighted Jersey Sales variable takes sum of scores for all players expected to be on team in 2025.</p>
-    </div>
-    <div class="stat-card rounded-lg p-6" style="background: rgb({{ market_color_int[0] }}, {{ market_color_int[1] }}, {{ market_color_int[2] }})">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-lg font-semibold" style="color: {{ market_text_color }}">Market Population</h3>
-            <span class="rank-badge rank-{{ team_stats.market_rank }}">{{ team_stats.market_rank }}{% if team_stats.market_rank % 10 == 1 and team_stats.market_rank % 100 != 11 %}st{% elif team_stats.market_rank % 10 == 2 and team_stats.market_rank % 100 != 12 %}nd{% elif team_stats.market_rank % 10 == 3 and team_stats.market_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
-        </div>
-        <p class="text-3xl font-bold" style="color: {{ market_text_color }}">{{ team_stats.market_pop }}</p>
-        <p class="text-xs mt-2" style="color: {{ market_text_color }}; opacity: 0.7;">Number of people who live in the team's home TV market</p>
-    </div>
-    <div class="stat-card rounded-lg p-6" style="background: rgb({{ intrigue_color_int[0] }}, {{ intrigue_color_int[1] }}, {{ intrigue_color_int[2] }})">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-lg font-semibold" style="color: {{ intrigue_text_color }}">Intrigue Score</h3>
-            <span class="rank-badge rank-{{ team_stats.intrigue_rank }}">{{ team_stats.intrigue_rank }}{% if team_stats.intrigue_rank % 10 == 1 and team_stats.intrigue_rank % 100 != 11 %}st{% elif team_stats.intrigue_rank % 10 == 2 and team_stats.intrigue_rank % 100 != 12 %}nd{% elif team_stats.intrigue_rank % 10 == 3 and team_stats.intrigue_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
-        </div>
-        <p class="text-3xl font-bold" style="color: {{ intrigue_text_color }}">{{ team_stats.intrigue | int }}</p>
-        <p class="text-xs mt-2" style="color: {{ intrigue_text_color }}; opacity: 0.7;">Model's prediction of how "intriguing" the team will be to watch, with 100 being average, and higher values being better. As a frame of reference, an intrigue of 120 would indicate the team is one standard deviation more intriguing than league average, 80 is one standard deviation less intriguing than league average.</p>
-    </div>
-</div>
-
-<!-- Schedule Table -->
-<div class="dark-card rounded-lg shadow-md overflow-hidden">
-    <div class="p-6 border-b border-gray-700">
-        <h2 class="text-2xl font-bold dark-heading mb-2">2025 Schedule</h2>
-        <p class="dark-subtext">Complete schedule with viewership projections and game intrigue rankings</p>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="schedule-table w-full">
-            <thead class="bg-gray-900">
-                <tr>
-                    <th class="w-10">Week</th>
-                    <th class="w-14">Date</th>
-                    <th class="w-16">Slot</th>
-                    <th class="w-20">Opponent</th>
-                    <th class="w-14">Opponent Intrigue</th>
-                    <th class="w-24">Projected Viewers (M)</th>
-                    <th class="w-14">Game Intrigue Percentile</th>
-                </tr>
-            </thead>
-            <tbody class="bg-darkbg divide-y divide-gray-800">
-                {% for game in schedule_data %}
-                <tr class="schedule-row">
-                    <td class="text-sm font-medium text-gray-100">{{ game.week }}</td>
-                    <td class="text-sm text-gray-400">{{ game.date }}</td>
-                    <td class="slot-cell text-gray-300">
-                        {% if not game.bye %}{{ game.slot }}{% endif %}
-                    </td>
-                    <td class="text-sm font-medium text-gray-100">{{ game.opponent }}</td>
-                    <td class="text-sm text-gray-400">
-                        {% if not game.bye %}{{ game.opponent_intrigue }}{% endif %}
-                    </td>
-                    <td class="text-sm text-gray-400">
-                        {% if not game.bye %}{{ game.projected_viewers }}{% endif %}
-                    </td>
-                    <td>
-                        {% if not game.bye %}
-                        {% set percentile = game.intrigue_percentile %}
-                        {% set rgb_high = [17, 128, 65] %}
-                        {% set rgb_low = [212, 36, 73] %}
-                        {% if percentile <= 50 %}
-                            {% set color_int = [((255 - rgb_low[0]) / 50.0 * percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * percentile + rgb_low[2]) | int] %}
+    <!-- Metrics (now on the right/below) -->
+    <div class="metrics-half" style="min-width:360px;max-width:850px;flex:1 1 70%;">
+        <div class="dark-card rounded-lg shadow-md overflow-hidden mb-6">
+            <div class="p-6 border-b border-gray-700">
+                <h2 class="text-2xl font-bold dark-heading mb-2">Team Metrics</h2>
+                <p class="dark-subtext">Modeled projection of how intriguing team is to fans, and the metrics used to create that intrigue score.</p>
+            </div>
+            <div class="flex flex-col gap-6 p-6">
+                {% set intrigue_percentile = ((32 - team_stats.intrigue_rank) / 31.0) * 100 %}
+                {% set win_pct_percentile = ((32 - team_stats.win_pct_rank) / 31.0) * 100 %}
+                {% set twitter_percentile = ((32 - team_stats.twitter_rank) / 31.0) * 100 %}
+                {% set jersey_percentile = ((32 - team_stats.jersey_rank) / 31.0) * 100 %}
+                {% set market_percentile = ((32 - team_stats.market_rank) / 31.0) * 100 %}
+                {% set rgb_high = [17, 128, 65] %}
+                {% set rgb_low = [212, 36, 73] %}
+                <!-- Intrigue Score Card (highlighted) -->
+                {% if intrigue_percentile <= 50 %}
+                    {% set intrigue_color_int = [((255 - rgb_low[0]) / 50.0 * intrigue_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * intrigue_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * intrigue_percentile + rgb_low[2]) | int] %}
+                {% else %}
+                    {% set intrigue_color_int = [((rgb_high[0] - 255) / 50 * intrigue_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * intrigue_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * intrigue_percentile + 2 * 255 - rgb_high[2]) | int] %}
+                {% endif %}
+                {% set intrigue_text_color = 'black' if intrigue_percentile >= 25 and intrigue_percentile <= 75 else 'white' %}
+                <div class="stat-card intrigue-highlight rounded-lg p-6" style="background: rgb({{ intrigue_color_int[0] }}, {{ intrigue_color_int[1] }}, {{ intrigue_color_int[2] }})">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg font-semibold" style="color: {{ intrigue_text_color }}">Intrigue Score</h3>
+                        <span class="rank-badge rank-{{ team_stats.intrigue_rank }}">{{ team_stats.intrigue_rank }}{% if team_stats.intrigue_rank % 10 == 1 and team_stats.intrigue_rank % 100 != 11 %}st{% elif team_stats.intrigue_rank % 10 == 2 and team_stats.intrigue_rank % 100 != 12 %}nd{% elif team_stats.intrigue_rank % 10 == 3 and team_stats.intrigue_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
+                    </div>
+                    <p class="text-3xl font-bold" style="color: {{ intrigue_text_color }}">{{ team_stats.intrigue | int }}</p>
+                    <p class="text-xs mt-2" style="color: {{ intrigue_text_color }}; opacity: 0.7;">Model's prediction of how "intriguing" the team will be to watch, with 100 being average, and higher values being better. As a frame of reference, an intrigue of 120 would indicate the team is one standard deviation more intriguing than league average, 80 is one standard deviation less intriguing than league average.</p>
+                </div>
+                <!-- Win Pct Card -->
+                {% if win_pct_percentile <= 50 %}
+                    {% set win_pct_color_int = [((255 - rgb_low[0]) / 50.0 * win_pct_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * win_pct_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * win_pct_percentile + rgb_low[2]) | int] %}
+                {% else %}
+                    {% set win_pct_color_int = [((rgb_high[0] - 255) / 50 * win_pct_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * win_pct_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * win_pct_percentile + 2 * 255 - rgb_high[2]) | int] %}
+                {% endif %}
+                {% set win_pct_text_color = 'black' if win_pct_percentile >= 25 and win_pct_percentile <= 75 else 'white' %}
+                <div class="stat-card rounded-lg p-6" style="background: rgb({{ win_pct_color_int[0] }}, {{ win_pct_color_int[1] }}, {{ win_pct_color_int[2] }})">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg font-semibold" style="color: {{ win_pct_text_color }}">Win Pct</h3>
+                        <span class="rank-badge rank-{{ team_stats.win_pct_rank }}">{{ team_stats.win_pct_rank }}{% if team_stats.win_pct_rank % 10 == 1 and team_stats.win_pct_rank % 100 != 11 %}st{% elif team_stats.win_pct_rank % 10 == 2 and team_stats.win_pct_rank % 100 != 12 %}nd{% elif team_stats.win_pct_rank % 10 == 3 and team_stats.win_pct_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
+                    </div>
+                    <p class="text-3xl font-bold" style="color: {{ win_pct_text_color }}">{{ team_stats.win_pct }}</p>
+                    <p class="text-xs mt-2" style="color: {{ win_pct_text_color }}; opacity: 0.7;">Team's win percentage during the 2024 regular season</p>
+                </div>
+                <!-- Twitter Followers Card -->
+                {% if twitter_percentile <= 50 %}
+                    {% set twitter_color_int = [((255 - rgb_low[0]) / 50.0 * twitter_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * twitter_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * twitter_percentile + rgb_low[2]) | int] %}
+                {% else %}
+                    {% set twitter_color_int = [((rgb_high[0] - 255) / 50 * twitter_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * twitter_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * twitter_percentile + 2 * 255 - rgb_high[2]) | int] %}
+                {% endif %}
+                {% set twitter_text_color = 'black' if twitter_percentile >= 25 and twitter_percentile <= 75 else 'white' %}
+                <div class="stat-card rounded-lg p-6" style="background: rgb({{ twitter_color_int[0] }}, {{ twitter_color_int[1] }}, {{ twitter_color_int[2] }})">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg font-semibold" style="color: {{ twitter_text_color }}">Twitter Followers</h3>
+                        <span class="rank-badge rank-{{ team_stats.twitter_rank }}">{{ team_stats.twitter_rank }}{% if team_stats.twitter_rank % 10 == 1 and team_stats.twitter_rank % 100 != 11 %}st{% elif team_stats.twitter_rank % 10 == 2 and team_stats.twitter_rank % 100 != 12 %}nd{% elif team_stats.twitter_rank % 10 == 3 and team_stats.twitter_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
+                    </div>
+                    <p class="text-3xl font-bold" style="color: {{ twitter_text_color }}">
+                        {% if team_stats.twitter_followers < 1 %}
+                            {{ (team_stats.twitter_followers * 1000) | int }}K
                         {% else %}
-                            {% set color_int = [((rgb_high[0] - 255) / 50 * percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * percentile + 2 * 255 - rgb_high[2]) | int] %}
+                            {{ "%.1f"|format(team_stats.twitter_followers) }}M
                         {% endif %}
-                        {% set r_hex = '%02x' % color_int[0] %}
-                        {% set g_hex = '%02x' % color_int[1] %}
-                        {% set b_hex = '%02x' % color_int[2] %}
-                        {% set color_string = (r_hex + g_hex + b_hex) | upper %}
-                        {% set text_color = 'black' if percentile >= 25 and percentile <= 75 else 'white' %}
-                        <div class="game-intrigue-cell" style="background-color: #{{ color_string }}; color: {{ text_color }};">
-                            {{ game.intrigue_percentile | int }}
-                        </div>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Key Explanation -->
-<div class="dark-card rounded-lg p-6 mt-8">
-    <h3 class="text-lg font-semibold dark-heading mb-4">Key</h3>
-    <div class="grid md:grid-cols-3 gap-6">
-        <div>
-            <h4 class="font-medium dark-heading mb-2">Opponent Intrigue</h4>
-            <p class="text-sm dark-subtext">
-                Intrigue score of the opposing team based on popularity, performance, and market size. 
-                100 is average, higher is better.
-            </p>
-        </div>
-        <div>
-            <h4 class="font-medium dark-heading mb-2">Projected Viewers (M)</h4>
-            <p class="text-sm dark-subtext">
-                Projected number of viewers for the game (in millions). Based on historical data, 
-                team popularity, and game slot. No projections for Sunday afternoon games.
-            </p>
-        </div>
-        <div>
-            <h4 class="font-medium dark-heading mb-2">Game Intrigue Percentile</h4>
-            <p class="text-sm dark-subtext">
-                Ranks the game based on projected viewership relative to all other 2025 matchups. 
-                0th percentile is worst game, 100th percentile is best game.
-            </p>
+                    </p>
+                    <p class="text-xs mt-2" style="color: {{ twitter_text_color }}; opacity: 0.7;">Team's number of twitter followers (in Nov 2024)</p>
+                </div>
+                <!-- Jersey Sales Card -->
+                {% if jersey_percentile <= 50 %}
+                    {% set jersey_color_int = [((255 - rgb_low[0]) / 50.0 * jersey_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * jersey_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * jersey_percentile + rgb_low[2]) | int] %}
+                {% else %}
+                    {% set jersey_color_int = [((rgb_high[0] - 255) / 50 * jersey_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * jersey_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * jersey_percentile + 2 * 255 - rgb_high[2]) | int] %}
+                {% endif %}
+                {% set jersey_text_color = 'black' if jersey_percentile >= 25 and jersey_percentile <= 75 else 'white' %}
+                <div class="stat-card rounded-lg p-6" style="background: rgb({{ jersey_color_int[0] }}, {{ jersey_color_int[1] }}, {{ jersey_color_int[2] }})">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg font-semibold" style="color: {{ jersey_text_color }}">Weighted Jersey Sales</h3>
+                        <span class="rank-badge rank-{{ team_stats.jersey_rank }}">{{ team_stats.jersey_rank }}{% if team_stats.jersey_rank % 10 == 1 and team_stats.jersey_rank % 100 != 11 %}st{% elif team_stats.jersey_rank % 10 == 2 and team_stats.jersey_rank % 100 != 12 %}nd{% elif team_stats.jersey_rank % 10 == 3 and team_stats.jersey_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
+                    </div>
+                    <p class="text-3xl font-bold" style="color: {{ jersey_text_color }}">{{ "%.2f"|format(team_stats.jersey_sales) }}</p>
+                    <p class="text-xs mt-2" style="color: {{ jersey_text_color }}; opacity: 0.7;">Each player who finished in Top 50 of NFL apparel sales (according to NFLPA) was given a score (1 for highest-seller, down to ~.1 for 50th highest seller), and Weighted Jersey Sales variable takes sum of scores for all players expected to be on team in 2025.</p>
+                </div>
+                <!-- Market Population Card -->
+                {% if market_percentile <= 50 %}
+                    {% set market_color_int = [((255 - rgb_low[0]) / 50.0 * market_percentile + rgb_low[0]) | int, ((255 - rgb_low[1]) / 50.0 * market_percentile + rgb_low[1]) | int, ((255 - rgb_low[2]) / 50.0 * market_percentile + rgb_low[2]) | int] %}
+                {% else %}
+                    {% set market_color_int = [((rgb_high[0] - 255) / 50 * market_percentile + 2 * 255 - rgb_high[0]) | int, ((rgb_high[1] - 255) / 50 * market_percentile + 2 * 255 - rgb_high[1]) | int, ((rgb_high[2] - 255) / 50 * market_percentile + 2 * 255 - rgb_high[2]) | int] %}
+                {% endif %}
+                {% set market_text_color = 'black' if market_percentile >= 25 and market_percentile <= 75 else 'white' %}
+                <div class="stat-card rounded-lg p-6" style="background: rgb({{ market_color_int[0] }}, {{ market_color_int[1] }}, {{ market_color_int[2] }})">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg font-semibold" style="color: {{ market_text_color }}">Market Population</h3>
+                        <span class="rank-badge rank-{{ team_stats.market_rank }}">{{ team_stats.market_rank }}{% if team_stats.market_rank % 10 == 1 and team_stats.market_rank % 100 != 11 %}st{% elif team_stats.market_rank % 10 == 2 and team_stats.market_rank % 100 != 12 %}nd{% elif team_stats.market_rank % 10 == 3 and team_stats.market_rank % 100 != 13 %}rd{% else %}th{% endif %} of 32</span>
+                    </div>
+                    <p class="text-3xl font-bold" style="color: {{ market_text_color }}">{{ team_stats.market_pop }}</p>
+                    <p class="text-xs mt-2" style="color: {{ market_text_color }}; opacity: 0.7;">Number of people who live in the team's home TV market</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

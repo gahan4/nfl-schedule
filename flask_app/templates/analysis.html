@@ -135,7 +135,7 @@ window.MathJax = {
 <div class="mb-8">
     <h1 class="text-3xl font-bold dark-heading mb-4">Analysis</h1>
     <p class="dark-subtext">
-        Deep dive into the methodology, data sources, and technical decisions behind the NFL schedule optimization.
+        On this page, we dive deep into methodology, data sources, and technical decisions that led to this prototype NFL schedule.
     </p>
 </div>
 
@@ -143,18 +143,22 @@ window.MathJax = {
 <div class="analysis-section">
     <h2>Introduction</h2>
     <div class="wrapped-text">
-        The goal of the NFL schedule optimization model is to maximize viewership for primetime games while respecting certain constraints
-        prescribed by the league. This page reviews more specifics of the process used to create the schedule.
+        The NFL faces the complex challenge of scheduling a prescribed set of 272 games over an 18-week regular season. Each week, games are played across a set of different television slots, including three slots of high-profile primetime windows (Thursday, Sunday, and Monday nights). In this prototype schedule, we aim to maximize the projected number of viewers for these primetime games, while also adhering to a wide range of constraints related to travel, competitive balance, stadium logistics, and broadcast requirements. This project explores how data-driven modeling and optimization can be used to generate a schedule that balances these goals and constraints.
     </div>
     <div class="wrapped-text">
-        At a high level, the schedule was created by creating a model to predict
-        the likely number of viewers for any game in any slot and then optimizing
-        to create a schedule that maximized the projected number of primetime viewers while adhering
-        to various league constraints. The modeling step was divided into two parts,
-        with a first-level model predicting the "intrigue" of each individual team as compared
-        to the other teams in the league, and the second-level model predicting the number
-        of viewers for a particular game given the intrigue of the teams involved.
+        The core steps of the project were:
     </div>
+    <ol class="list-decimal list-inside text-gray-300 ml-4 mb-4">
+        <li><strong>Data Collection:</strong> Gathered historical viewership data, team statistics, market sizes, and other relevant features from web sources and league reports.</li>
+        <li><strong>Projecting Viewership for Each Game:</strong>
+            <ul class="list-disc ml-6 mt-2">
+                <li>Created an <strong>intrigue score</strong> for each team based on factors like win percentage, social media following, market size, and jersey sales.</li>
+                <li>Used these intrigue scores as key features in a model to predict the number of viewers for each game.</li>
+            </ul>
+        </li>
+        <li><strong>Schedule Optimization:</strong> Formulated the problem as a mathematical optimization problem, incorporating league constraints and maximizing projected viewership.</li>
+        <li><strong>App Creation:</strong> Built this interactive web application to visualize, explore, and explain the results.</li>
+    </ol>
 </div>
 
 <!-- Data Sources Section -->
@@ -215,7 +219,10 @@ window.MathJax = {
     
     <h3>Team Intrigue Model</h3>
     <div class="wrapped-text">
-        The <strong>Team Intrigue Model</strong> was built to predict the intrigue score of a team based on multiple features, including:
+        The Team Intrigue Model was built to determine the factors that lead each individual team to drive television viewership. The model was trained to predict, for each team, the number of viewers in a primetime game in which that team participated (i.e., the response variable was the number of viewers for a game, with each game appearing twice in the training data—once for each team involved). Each row in the training data corresponded to a team-game pair for a primetime matchup. Non-primetime games were not included in this process, as the freely available data did not report the number of viewers for each individual Sunday afternoon game; instead, only the total number of viewers for the window was reported, and since multiple games are played in parallel in different parts of the country, it was challenging to attribute viewership to specific games.
+    </div>
+    <div class="wrapped-text">
+        The following metrics were tested as features in the model:
     </div>
     <ul class="list-disc list-inside text-gray-300 ml-4 mb-4">
         <li>Team performance (Win Percentage from previous season)</li>
@@ -225,32 +232,20 @@ window.MathJax = {
         <li>Key team changes such as the introduction of a new quarterback or the draft position (e.g., the team with the 1st overall pick could have more intrigue)</li>
         <li>Nuisance variables were added to account for game slot (i.e. SNF gets more viewership than TNF, games played as part of an MNF doubleheader get fewer viewers than standalone games)</li>
     </ul>
-    
     <div class="wrapped-text">
-        A Lasso regression model was selected for feature selection because it helps in determining the most influential variables while avoiding overfitting by applying L1 regularization.
-        The bar plot below shows the coefficients that the model chose - note that
-        all variables were normally scaled, and the response variable is "number of viewers". Aside from the nuisance variables,
-        we see that the most important features are the previous season's win percentage, twitter followers, and weighted jersey sales,
-        with market population and the presence of a new high-value QB providing some value. However, note that when creating
-        the schedule in April, we don't know for sure which high-value QBs might change teams.
+        A Lasso regression model was selected for feature selection because it helped in determining the most influential variables while avoiding overfitting by applying L1 regularization. The bar plot below shows the coefficients that the model chose. All variables were normally scaled, and the response variable was the number of viewers for a team in a primetime game. Aside from the nuisance variables, the most important features were the previous season's win percentage, twitter followers, and weighted jersey sales, with market population and the presence of a new high-value QB providing some value. However, when creating the schedule in April, it was not always possible to know for sure which high-value QBs might change teams.
     </div>
     
     <div class="coefficient-plot">
         <h4 class="text-lg font-semibold mb-4">Intrigue Model Feature Coefficients</h4>
         <img src="{{ url_for('static', filename='images/intrigue_model_coefficients.png') }}" alt="Intrigue Model Coefficients" class="analysis-image">
     </div>
-    
     <div class="wrapped-text">
-        To go from the results of the model to a more understandable Intrigue Score,
-        we simply scaled the results so that the mean intrigue score would be 100 and the standard deviation would be 20.
-        To do this, we found the mean and standard deviation of projected SNF Viewers for 2022-23 teams (using the model above),
-        then applying that same mean and standard deviation to 2025 teams.
+        To help better contextualize how much viewership each team would drive, we created an <strong>Intrigue Score</strong>. To translate from the results of the team viewership model to the Intrigue Score, we projected the number of viewers that would watch a Sunday Night game involving each team in the training set, and scaled that projection onto a scale with a mean of 100 and standard deviation of 20. That is, a team that would be projected for an average number of viewers (as compared to all team-seasons in the training set) would have an Intrigue Score of 100, while teams projected for one standard deviation more viewers would have an Intrigue Score of 120.
     </div>
     
     <div class="wrapped-text">
-        The table below shows all of the factors that contributed to the creation of team's
-        intrigue scores for the 2025 season, as well as the scores from each team. The table
-        is sortable by each column.
+        The table below shows the projected Intrigue Score for each team in the 2025 NFL season, as well as the relevant metrics that helped to create the score. The table is sortable by each column.
     </div>
     
     <!-- Team Intrigue Data Table -->
@@ -272,7 +267,13 @@ window.MathJax = {
                 {% set intrigue_style = "background-color: " + team.intrigue_color + "; color: " + team.intrigue_text_color + ";" %}
                 <tr>
                     <td>{{ team.team_abbr }}</td>
-                    <td>{{ "%.3f"|format(team.WinPct) }}</td>
+                    <td>
+                      {% if team.WinPct < 1 %}
+                        {{ "%.3f"|format(team.WinPct)|replace("0.", ".") }}
+                      {% else %}
+                        {{ "%.3f"|format(team.WinPct) }}
+                      {% endif %}
+                    </td>
                     <td>{{ "{:,}".format(team.market_pop) }}</td>
                     <td>{{ "{:,.0f}".format(team.twitter_followers) }}</td>
                     <td>{{ "Yes" if team.new_high_value_qb else "No" }}</td>
@@ -324,9 +325,21 @@ window.MathJax = {
         selection of variables related to the intrigue score of the two teams that led to increased
         viewership projections as both teams got better. Many options were tried, and in the end,
         the two most impactful such variables were "Max Intrigue Over Average", defined as the maximum
-        intrigue of the two teams minus 100 if the maximum intrigue was over 100 and 0 otherwise,
+        intrigue of the two teams minus 100 if the maximum intrigue was over 100 and 0 otherwise (see below),
         and "Product Of Intrigue Over Average", defined as the product of the intrigue-over-100 score
         for both teams (Intrigue - 100 if Intrigue > 100, 0 otherwise).
+    </div>
+    
+    <div class="math-formula">
+        \[
+        \text{IntrigueOverAvg}(I) = \begin{cases}
+            I - 100 & \text{if } I > 100 \\
+            0 & \text{otherwise}
+        \end{cases}
+        \]
+    </div>
+    <div class="wrapped-text">
+        The plot below shows the coefficients that were learned by the model. The most impactful variables (outside of the nuisance variables) are those dealing with intrigue over average. In particular, adding other variables that dealt with possible relationships between the teams—such as whether or not they are in the same division—was not found to be impactful.
     </div>
     
     <div class="coefficient-plot">
@@ -339,7 +352,7 @@ window.MathJax = {
 <div class="analysis-section">
     <h2>Schedule Formulation</h2>
     <div class="wrapped-text">
-        The scheduling problem was set up as a binary integer program. This involved
+        Using the models above, we had a projection for how many viewers each of the 272 NFL games would be projected to garner in each slot. The next step was to set up an optimization formulation to maximize the number of primetime viewers, while respecting the various constraints that the league needs to adhere to. The scheduling problem was set up as a binary integer program. This involved
         creating an objective function and constraint matricies, and mathematically
         enumerating each of the rules that we want to see in our schedule.
     </div>
@@ -468,6 +481,21 @@ window.MathJax = {
         The problem was solved using a CBC solver through Google's OR-Tools, which efficiently handled large constraint sets.
         The solver was allowed to run for 2 hours on a personal laptop.
     </div>
+</div>
+
+<!-- Limitations Section -->
+<div class="analysis-section">
+    <h2>Limitations</h2>
+    <ul class="list-disc list-inside text-gray-300 ml-4 mb-4">
+        <li>This project was executed as a personal project, not as an attempt to build a commercially viable result in consultation with stakeholders. As such, there was limited back-and-forth and no dialogue with league or broadcast partners about the appropriate objectives or constraints for the schedule.</li>
+        <li>Viewership data was only available for the 2022 and 2023 seasons, and only for games that were independently rated. Most notably, there was no viewership figure for each specific Sunday afternoon game; only the total number of viewers for the window was reported, making it challenging to attribute viewership to individual games.</li>
+        <li>Non-primetime games were not included in the training data for the models, due to the lack of individual game viewership data for those windows.</li>
+        <li>Each primetime game appeared twice in the training data (once for each team), which may introduce some bias in the modeling process.</li>
+        <li>The model was trained on a relatively small sample (two seasons), increasing the risk of overfitting and limiting the ability to capture rare or unusual scheduling scenarios.</li>
+        <li>Some features, such as market size and Twitter followers, were taken from the present day (Feb/Nov 2024) rather than what would have been known at the time of schedule creation.</li>
+        <li>Variables that might capture complex relationships between teams (such as whether they are in the same division) were tested but not found to be impactful in the final model.</li>
+        <li>Some constraints and objectives were chosen based on public information and personal judgment, rather than through a formal requirements-gathering process.</li>
+    </ul>
 </div>
 
 <script>
