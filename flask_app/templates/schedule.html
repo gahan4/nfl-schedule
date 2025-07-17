@@ -24,11 +24,6 @@
         background: transparent;
         font-size: 0.95rem;
     }
-    .game-cell:hover {
-        transform: scale(1.08);
-        z-index: 10;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-    }
     /* Home games - colored backgrounds */
     .game-cell.mnf { background-color: #B59410; color: #fff; }
     .game-cell.snf { background-color: #32CD32; color: #fff; }
@@ -102,9 +97,11 @@
 {% block content %}
 <div class="mb-8">
     <h1 class="text-3xl font-bold dark-heading mb-4">NFL League Schedule</h1>
+    <p class="dark-subtext mb-2">
+        This page shows the full 2025 NFL regular season schedule, with each row representing a week and each column representing a team. Each cell shows the opponent for that team in that week, with color-coding to indicate the game slot and home/away status.
+    </p>
     <p class="dark-subtext">
-        Complete 2025 NFL season schedule for all 32 teams across 18 weeks. 
-        Games are color-coded by time slot and show home/away status.
+        Use this grid to quickly scan the schedule for all 32 teams, identify primetime matchups, and explore how games are distributed across the season.
     </p>
 </div>
 
@@ -167,18 +164,16 @@
 </div>
 
 <!-- Team Selection for Individual Analysis -->
-<div class="dark-card rounded-lg shadow-md p-6 mt-8">
-    <h2 class="text-lg font-semibold dark-heading mb-4">Individual Team Analysis</h2>
-    <p class="dark-subtext mb-4">
-        Select a team to view their detailed schedule and viewership projections:
+<!-- Removed grid of links to individual team analysis pages -->
+
+<!-- Navigation to Other Pages -->
+<div class="mt-12 text-center">
+    <h2 class="text-lg font-semibold dark-heading mb-4">Continue Exploring</h2>
+    <p class="dark-subtext mb-2">
+        Want to dive deeper? Head to the <a href="{{ url_for('team_analysis', team_abbr='ARI') }}" class="text-yellow-300 hover:text-yellow-200 font-semibold">Individual Team Analysis</a> page to see detailed schedules, intrigue scores, and viewership projections for each team.
     </p>
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
-        {% for team in teams %}
-        <a href="{{ url_for('team_analysis', team_abbr=team) }}" 
-           class="bg-gray-700 hover:bg-blue-900 text-gray-100 hover:text-yellow-300 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
-            {{ team }}
-        </a>
-        {% endfor %}
-    </div>
+    <p class="dark-subtext">
+        Or, visit the <a href="{{ url_for('analysis') }}" class="text-yellow-300 hover:text-yellow-200 font-semibold">Analysis</a> page for a full breakdown of the methodology, data sources, and optimization techniques used to create this schedule.
+    </p>
 </div>
 {% endblock %} 
