@@ -143,7 +143,7 @@ window.MathJax = {
 <div class="analysis-section">
     <h2>Introduction</h2>
     <div class="wrapped-text">
-        The NFL faces the complex challenge of scheduling a prescribed set of 272 games over an 18-week regular season. Each week, games are played across a set of different television slots, including three slots of high-profile primetime windows (Thursday, Sunday, and Monday nights). In this prototype schedule, we aim to maximize the projected number of viewers for these primetime games, while also adhering to a wide range of constraints related to travel, competitive balance, stadium logistics, and broadcast requirements. This project explores how data-driven modeling and optimization can be used to generate a schedule that balances these goals and constraints.
+        The NFL faces the complex challenge of scheduling a prescribed set of 272 games over an 18-week regular season. Each week, games are played across a set of different television slots, including three slots of high-profile primetime windows (Thursday, Sunday, and Monday nights). In this prototype schedule, we aim to maximize the projected number of viewers for these primetime games, while also adhering to a wide range of constraints related to travel, competitive balance, stadium logistics, broadcast requirements, etc. This project explores how data-driven modeling and optimization can be used to generate a schedule that balances these goals and constraints.
     </div>
     <div class="wrapped-text">
         The core steps of the project were:
@@ -174,17 +174,17 @@ window.MathJax = {
     </div>
     
     <div class="data-source-item">
-        <strong>Viewership Data:</strong> Manually taken from SportsMediaWatch. An example link is <a href="https://www.sportsmediawatch.com/nfl-tv-ratings-viewership-2023/" class="text-blue-400 hover:text-blue-300">here</a>. Data was uploaded to this website
-        in the form of a picture, presenting the number of viewers in every game slot. Data was only acquired for the 2022 and 2023 seasons. Note that data was not available for each game that was
-        not independently rated - most relevant, there was no viewership figure for each specific Sunday afternoon game.
+        <strong>Viewership Data:</strong> Manually taken from SportsMediaWatch. An example link is <a href="https://www.sportsmediawatch.com/nfl-tv-ratings-viewership-2023/" class="text-blue-400 hover:text-blue-300">here</a>. Data was uploaded to SportsMediaWatch
+        in the form of a picture, presenting the number of viewers in every game slot. Data was only acquired for the 2022 and 2023 seasons. Data was only available for each game that was
+        independently rated - most importantly, there were no viewership figures for each Sunday afternoon game.
     </div>
     
     <div class="data-source-item">
-        <strong>General Team Information:</strong> Acquired via the nfl_data_py package. This included their name, division, city, etc.
+        <strong>General Team Information:</strong> Acquired via the nfl_data_py package. This included each team's name, division, city, etc.
     </div>
     
     <div class="data-source-item">
-        <strong>Market Population:</strong> Scraped from a SportsMediaWatch article (<a href="https://www.sportsmediawatch.com/nba-market-size-nfl-mlb-nhl-nielsen-ratings/" class="text-blue-400 hover:text-blue-300">Link</a>) using the pandas package.
+        <strong>Market Population:</strong> The number of residents in the home television market of each team was taken from a SportsMediaWatch article (<a href="https://www.sportsmediawatch.com/nba-market-size-nfl-mlb-nhl-nielsen-ratings/" class="text-blue-400 hover:text-blue-300">Link</a>).
     </div>
     
     <div class="data-source-item">
@@ -442,11 +442,12 @@ window.MathJax = {
         <li><strong>Objective Function:</strong> Created by projecting the number of viewers for each matchup in each slot. Assume that all games not in a primetime slot would have 0 viewers.</li>
         <li><strong>Constraint Matrices:</strong> Matrices representing the various constraints, applied</li>
     </ul>
-    
+    <div class="wrapped-text">
+        In total, the final model had <strong>19,584 variables</strong>, <strong>588 equality constraints</strong>, and <strong>6,772 inequality constraints</strong>.
+    </div>
     <div class="wrapped-text">
         The mathematical formulation for the problem is:
     </div>
-    
     <div class="math-formula">
         <div style="font-size: 1.2rem; margin-bottom: 1rem;">
             <strong>Maximize:</strong> \(f^T x\)
@@ -458,7 +459,6 @@ window.MathJax = {
             \(x \in \{0,1\}^n\)
         </div>
     </div>
-    
     <div class="wrapped-text">
         Where:
     </div>
@@ -471,30 +471,26 @@ window.MathJax = {
         <li>\(b_{\text{eq}} \in \mathbb{R}^{m_2}\): right-hand side for equality constraints</li>
     </ul>
     
-    <div class="stats-highlight">
-        <strong>In total, the final model had:</strong><br>
-        <strong>588 equality constraints</strong><br>
-        <strong>6,772 inequality constraints</strong>
-    </div>
-    
     <div class="wrapped-text">
         The problem was solved using a CBC solver through Google's OR-Tools, which efficiently handled large constraint sets.
-        The solver was allowed to run for 2 hours on a personal laptop.
+        The solver ran for about 2 hours on a personal laptop.
     </div>
 </div>
 
 <!-- Limitations Section -->
 <div class="analysis-section">
     <h2>Limitations</h2>
+    <div class="wrapped-text">
+        This project was executed as a personal project, not as an attempt to build a commercially viable result. As such, it lacks access to resources that a company or organization would typically have, such as more powerful optimization solvers, larger datasets for model training, and more comprehensive data sources for viewership analysis.
+    </div>
     <ul class="list-disc list-inside text-gray-300 ml-4 mb-4">
-        <li>This project was executed as a personal project, not as an attempt to build a commercially viable result in consultation with stakeholders. As such, there was limited back-and-forth and no dialogue with league or broadcast partners about the appropriate objectives or constraints for the schedule.</li>
         <li>Viewership data was only available for the 2022 and 2023 seasons, and only for games that were independently rated. Most notably, there was no viewership figure for each specific Sunday afternoon game; only the total number of viewers for the window was reported, making it challenging to attribute viewership to individual games.</li>
-        <li>Non-primetime games were not included in the training data for the models, due to the lack of individual game viewership data for those windows.</li>
-        <li>Each primetime game appeared twice in the training data (once for each team), which may introduce some bias in the modeling process.</li>
-        <li>The model was trained on a relatively small sample (two seasons), increasing the risk of overfitting and limiting the ability to capture rare or unusual scheduling scenarios.</li>
-        <li>Some features, such as market size and Twitter followers, were taken from the present day (Feb/Nov 2024) rather than what would have been known at the time of schedule creation.</li>
-        <li>Variables that might capture complex relationships between teams (such as whether they are in the same division) were tested but not found to be impactful in the final model.</li>
+        <li>Non-primetime games were not included in the training data for the viewership models, due to the lack of individual game viewership data for those windows.</li>
+        <li>The viewership models were trained on a relatively small sample (two seasons), limiting the ability to learn more features or complex relationships that have tended to impact game viewership over a long time horizon.</li>
+        <li>Some features, such as market size and Twitter followers, were taken from the present day (Feb/Nov2024) rather than what would have been known at the time of schedule creation.</li>
         <li>Some constraints and objectives were chosen based on public information and personal judgment, rather than through a formal requirements-gathering process.</li>
+        <li>Limited computational power: the optimization problem was solved on a personal laptop using a free solver (CBC), which required reducing the complexity of the problem and the types of constraints that could be handled. For example, constraints regarding the number of games a team could play against opponents coming off a bye week were not included due to problem size limitations.</li>
+        <li>Missing constraints that would be present in a real NFL schedule, such as international games, more detailed stadium conflicts, and additional bye week restrictions.</li>
     </ul>
 </div>
 
