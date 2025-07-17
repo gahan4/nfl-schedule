@@ -158,6 +158,13 @@
 {% endblock %}
 
 {% block content %}
+<!-- Intro Text (moved above dropdown, updated as requested) -->
+<div class="mb-6">
+    <p class="dark-subtext">
+        This page provides a detailed analysis of the selected team's schedule. You can view the full schedule, intrigue scores, and the key metrics behind the models. Use the dropdown below to switch between teams.
+    </p>
+</div>
+
 <!-- Team Selection Dropdown -->
 <form method="POST" action="{{ url_for('team_analysis_dropdown') }}" class="team-select-form">
     <label for="team_select">Select Team:</label>
@@ -168,12 +175,7 @@
     </select>
 </form>
 
-<!-- Intro Text -->
-<div class="mb-6">
-    <p class="dark-subtext">
-        This page provides a detailed analysis of the selected team's 2025 NFL schedule. You can view the full schedule, projected viewership for each game, intrigue scores, and the key metrics that contribute to the team's overall intrigue. Use the dropdown above to switch between teams.
-    </p>
-</div>
+
 
 <script>
 document.getElementById('team_select').addEventListener('change', function() {
@@ -377,4 +379,11 @@ document.getElementById('team_select').addEventListener('change', function() {
         </div>
     </div>
 </div>
-{% endblock %} 
+
+<!-- Wrap-up section with link to Analysis page -->
+<div class="mt-12 mb-8 text-center">
+    <p class="dark-subtext mb-2">Want to learn more about how these metrics and intrigue scores were created?</p>
+    <a href="{{ url_for('analysis') }}" class="inline-block px-6 py-3 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Go to Analysis Page</a>
+</div> 
+
+{% endblock %}
