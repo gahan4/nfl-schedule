@@ -23,7 +23,7 @@ Please explore the app to view the results and learn more about the process used
 
 - `data/` – Raw and processed datasets
 - `src/` – Code for data processing, modeling, and optimization  
-- `app/` – Code to create Streamlit app that presents the final results  
+- `flask_app/` – Code to create Flask app that presents the final results  
 - `results/` – Output files, trained models, and plots
   
 ---
